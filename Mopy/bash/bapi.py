@@ -278,12 +278,11 @@ def Init(path):
     _CGetModBashTags = BAPI.boss_get_plugin_tags
     _CGetModBashTags.restype = BossErrorCheck
     _CGetModBashTags.argtypes = [boss_db, c_char_p, c_uint_p_p, c_size_t_p, c_uint_p_p, c_size_t_p, c_bool_p]
-    ## boss_get_dirty_message (boss_db db, const char * const plugin,
-    ##                                          boss_message * const message,
+    ## boss_get_dirty_info (boss_db db, const char * const plugin,
     ##                                          unsigned int * const needsCleaning)
-    _CGetDirtyMessage = BAPI.boss_get_dirty_message
+    _CGetDirtyMessage = BAPI.boss_get_dirty_info
     _CGetDirtyMessage.restype = BossErrorCheck
-    _CGetDirtyMessage.argtypes = [boss_db, c_char_p, boss_message_p, c_uint_p]
+    _CGetDirtyMessage.argtypes = [boss_db, c_char_p, c_uint_p]
     ## unsigned int boss_write_minimal_list (boss_db db, const char * const outputFile, const bool overwrite)
     _CDumpMinimal = BAPI.boss_write_minimal_list
     _CDumpMinimal.restype = BossErrorCheck
@@ -319,6 +318,7 @@ def Init(path):
         # ---------------------------------------------------------------------
         def Load(self, masterlist, userlist=None):
             # Load masterlist/userlist
+            print masterlist
             _CLoad(self._DB, _enc(masterlist), _enc(userlist) if userlist else None)
             _CEvalConditionals(self._DB, boss_lang_any)
             self._GetBashTags()
@@ -352,10 +352,12 @@ def Init(path):
             return (added, removed, userlist.value)
 
         def GetDirtyMessage(self,plugin):
-            message = boss_message()
             clean = c_uint()
-            _CGetDirtyMessage(self._DB,_enc(plugin),byref(message),byref(clean))
-            return (_uni(message.message.value),clean.value)
+            _CGetDirtyMessage(self._DB,_enc(plugin),byref(clean))
+            if clean.value == boss_needs_cleaning_yes:
+                return ('Contains dirty edits, needs cleaning.',clean.value)
+            else:
+                return ('',clean.value)
             
         def DumpMinimal(self,file,overwrite):
             _CDumpMinimal(self._DB,_enc(file),overwrite)
