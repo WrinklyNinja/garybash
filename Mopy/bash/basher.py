@@ -14266,9 +14266,6 @@ class App_BOSS(App_Button):
                     # After version 2.0, need to pass in the -g argument
                     #exeArgs += ('-g%s' % bush.game.name,)
                     exeArgs += ('-g%s' % 'FalloutNV',)
-                if bosh.dirs['boss'].join('BOSS.exe').version >= (3,0,0,0):
-                    # After version 3.0, need to pass
-                    exeArgs += ('-g%s' % 'FalloutNV',)
                 progress(0.05,_("Processing... launching BOSS."))
                 try:
                     subprocess.call((exePath.s,) + exeArgs[1:], startupinfo=bosh.startupinfo, close_fds=bolt.close_fds)
