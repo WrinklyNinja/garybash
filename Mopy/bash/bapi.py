@@ -19,14 +19,13 @@ BAPI = None
 version = None
 
 # Version of BOSS API this Python script is written for.
-PythonAPIVersion = (2,1)
+PythonAPIVersion = (3,0)
 
 DebugLevel = 0
 # DebugLevel
 #  Set this for more or less feedback
 #  0 - (default) no additional feedback
-#  1 - print a statement to stdout when any BOSS_API_WARN return code is found
-#  2 - print information about all return codes found
+#  1 - print information about all return codes found
 
 class BossVersionError(Exception):
     """Exception thrown if the BOSS API loaded is not
@@ -55,7 +54,13 @@ def Init(path):
         return
 
     try:
-        BAPI = CDLL(path)
+        # CDLL doesn't play with unicode path strings nicely on windows :(
+        # Use this workaround
+        handle = None
+        if isinstance(path,unicode) and os.name in ('nt','ce'):
+            LoadLibrary = windll.kernel32.LoadLibraryW
+            handle = LoadLibrary(path)
+        BAPI = CDLL(path,handle=handle)
     except Exception as e:
         BAPI = None
         raise
@@ -63,25 +68,18 @@ def Init(path):
     # Some types
     boss_db = c_void_p
     boss_db_p = POINTER(boss_db)
-    c_uint32_p = POINTER(c_uint32)
-    c_uint32_p_p = POINTER(c_uint32_p)
-    c_bool_p = POINTER(c_bool)
-    c_uint8_p = c_char_p
-    c_uint8_p_p = POINTER(c_uint8_p)
-    c_uint8_p_p_p = POINTER(c_uint8_p_p)
-    c_size_t_p = POINTER(c_size_t)
-    class BashTag(Structure):
-        _fields_ = [('id',c_uint32),
-                    ('name',c_uint8_p),
+    class boss_message(Structure):
+        _fields_ = [('type', c_uint),
+                    ('message', c_char_p),
                     ]
-    BashTag_p = POINTER(BashTag)
-    BashTag_p_p = POINTER(BashTag_p)
-    def list_of_strings(strings):
-        lst = (c_uint8_p * len(strings))()
-        lst = cast(lst,c_uint8_p_p)
-        for i,string in enumerate(strings):
-            lst[i] = cast(create_string_buffer(string),c_uint8_p)
-        return lst
+    c_char_p_p = POINTER(c_char_p)
+    c_char_p_p_p = POINTER(c_char_p_p)
+    c_uint_p = POINTER(c_uint)
+    c_uint_p_p = POINTER(c_uint_p)
+    c_size_t_p = POINTER(c_size_t)
+    c_bool_p = POINTER(c_bool)
+    boss_message_p = POINTER(boss_message)
+    boss_message_p_p = POINTER(boss_message_p)
 
     # utility unicode functions
     def _uni(x): return u'' if x is None else unicode(x,'utf8')
@@ -92,100 +90,99 @@ def Init(path):
     # =========================================================================
     # API Functions - Version
     # =========================================================================
-    ## bool IsCompatibleVersion(const uint32_t bossVersionMajor, const uint32_t bossVersionMinor, const uint32_t bossVersionPatch)
-    _CIsCompatibleVersion = BAPI.IsCompatibleVersion
+    ## bool boss_is_compatible(const unsigned int versionMajor, const unsigned int versionMinor, const unsigned int versionPatch)
+    _CIsCompatibleVersion = BAPI.boss_is_compatible
     _CIsCompatibleVersion.restype = c_bool
-    _CIsCompatibleVersion.argtypes = [c_uint32, c_uint32, c_uint32]
+    _CIsCompatibleVersion.argtypes = [c_uint, c_uint, c_uint]
     def IsCompatibleVersion(majorVersion, minorVersion, patchVersion=0):
         return True
         return _CIsCompatibleVersion(majorVersion,minorVersion,patchVersion)
     if not IsCompatibleVersion(*PythonAPIVersion):
+        verMajor = c_uint()
+        verMinor = c_uint()
+        verPatch = c_uint()
         try:
-            ver = c_uint8_p()
-            BAPI.GetVersionString(byref(ver))
-            ver = _uni(ver.value)
+            BAPI.boss_get_version(byref(verMajor), byref(verMinor), byref(verPatch))
         except:
-            ver = ''
-        raise BossVersionError('bapi.py is not compatible with the specified BOSS API DLL (%s).' % ver)
-
-    # =========================================================================
-    # API Constants - Games
-    # =========================================================================
-    BOSS_API_GAME_OBLIVION = c_uint.in_dll(BAPI,'BOSS_API_GAME_OBLIVION').value
-    BOSS_API_GAME_FALLOUT3 = c_uint.in_dll(BAPI,'BOSS_API_GAME_FALLOUT3').value
-    BOSS_API_GAME_FALLOUTNV=c_uint.in_dll(BAPI,'BOSS_API_GAME_FALLOUTNV').value
-    BOSS_API_GAME_NEHRIM = c_uint.in_dll(BAPI,'BOSS_API_GAME_NEHRIM').value
-    BOSS_API_GAME_SKYRIM = c_uint.in_dll(BAPI,'BOSS_API_GAME_SKYRIM').value
-    games = {
-        'Oblivion':BOSS_API_GAME_OBLIVION,
-        BOSS_API_GAME_OBLIVION:BOSS_API_GAME_OBLIVION,
-        'Fallout 3':BOSS_API_GAME_FALLOUT3,
-        BOSS_API_GAME_FALLOUT3:BOSS_API_GAME_FALLOUT3,
-        'Fallout: New Vegas':BOSS_API_GAME_FALLOUTNV,
-        BOSS_API_GAME_FALLOUTNV:BOSS_API_GAME_FALLOUTNV,
-        'Nehrim':BOSS_API_GAME_NEHRIM,
-        BOSS_API_GAME_NEHRIM:BOSS_API_GAME_NEHRIM,
-        'Skyrim':BOSS_API_GAME_SKYRIM,
-        BOSS_API_GAME_SKYRIM:BOSS_API_GAME_SKYRIM,
-        }
-
-    # =========================================================================
-    # API Constants - Load Order Method
-    # =========================================================================
-    BOSS_API_LOMETHOD_TIMESTAMP = c_uint.in_dll(BAPI,'BOSS_API_LOMETHOD_TIMESTAMP').value
-    BOSS_API_LOMETHOD_TEXTFILE = c_uint.in_dll(BAPI,'BOSS_API_LOMETHOD_TEXTFILE').value
-
-    # =========================================================================
-    # API Constants - Cleanliness
-    # =========================================================================
-    BOSS_API_CLEAN_NO = c_uint.in_dll(BAPI,'BOSS_API_CLEAN_NO').value
-    BOSS_API_CLEAN_YES = c_uint.in_dll(BAPI,'BOSS_API_CLEAN_YES').value
-    BOSS_API_CLEAN_UNKNOWN = c_uint.in_dll(BAPI,'BOSS_API_CLEAN_UNKNOWN').value
+            raise BossVersionError('bapi.py is not compatible with the specified BOSS API DLL (%i.%i.%i).' % verMajor % verMinor % verPatch)
 
     # =========================================================================
     # API Constants - Return codes
     # =========================================================================
     errors = {}
     ErrorCallbacks = {}
-    for name in ['OK',
-                 'OK_NO_UPDATE_NECESSARY',
-                 'WARN_BAD_FILENAME',
-                 'WARN_LO_MISMATCH',
-                 'ERROR_FILE_WRITE_FAIL',
-                 'ERROR_FILE_DELETE_FAIL',
-                 'ERROR_FILE_NOT_UTF8',
-                 'ERROR_FILE_NOT_FOUND',
-				 'ERROR_FILE_RENAME_FAIL',
-                 'ERROR_TIMESTAMP_READ_FAIL',
-                 'ERROR_TIMESTAMP_WRITE_FAIL',
-                 'ERROR_PARSE_FAIL',
-                 'ERROR_CONDITION_EVAL_FAIL',
-                 'ERROR_NO_MEM',
-                 'ERROR_INVALID_ARGS',
-                 'ERROR_NETWORK_FAIL',
-                 'ERROR_NO_INTERNET_CONNECTION',
-                 'ERROR_NO_TAG_MAP',
-                 'ERROR_PLUGINS_FULL',
-                 'ERROR_GAME_NOT_FOUND',
-                 'ERROR_REGEX_EVAL_FAIL',
+    for name in ['ok',
+                 'error_liblo_error',
+                 'error_file_write_fail',
+                 'error_parse_fail',
+                 'error_condition_eval_fail',
+                 'error_regex_eval_fail',
+                 'error_no_mem',
+                 'error_invalid_args',
+                 'error_no_tag_map',
+                 'error_path_not_found',
+                 'error_no_game_detected',
+                 'error_windows_error',
+                 'error_sorting_error',
                  ]:
-        name = 'BOSS_API_'+name
+        name = 'boss_'+name
         errors[name] = c_uint.in_dll(BAPI,name).value
         ErrorCallbacks[errors[name]] = None
-    BOSS_API_RETURN_MAX = c_uint.in_dll(BAPI,'BOSS_API_RETURN_MAX').value
+    boss_return_max = c_uint.in_dll(BAPI,'boss_return_max').value
     globals().update(errors)
+
+    # =========================================================================
+    # API Constants - Games
+    # =========================================================================
+    boss_game_tes4 = c_uint.in_dll(BAPI,'boss_game_tes4').value
+    boss_game_tes5 = c_uint.in_dll(BAPI,'boss_game_tes5').value
+    boss_game_fo3 = c_uint.in_dll(BAPI,'boss_game_fo3').value
+    boss_game_fonv = c_uint.in_dll(BAPI,'boss_game_fonv').value
+    games = {
+        'Oblivion':boss_game_tes4,
+        boss_game_tes4:boss_game_tes4,
+        'Skyrim':boss_game_tes5,
+        boss_game_tes5:boss_game_tes5,
+        'Fallout 3':boss_game_fo3,
+        boss_game_fo3:boss_game_fo3,
+        'Fallout: New Vegas':boss_game_fonv,
+        boss_game_fonv:boss_game_fonv,
+        }
+        
+    # =========================================================================
+    # API Constants - Message Types
+    # =========================================================================
+    boss_message_say = c_uint.in_dll(BAPI,'boss_message_say').value
+    boss_message_warn = c_uint.in_dll(BAPI,'boss_message_warn').value
+    boss_message_error = c_uint.in_dll(BAPI,'boss_message_error').value
+    boss_message_tag = c_uint.in_dll(BAPI,'boss_message_tag').value
+        
+    # =========================================================================
+    # API Constants - Languages
+    # =========================================================================
+    boss_lang_any = c_uint.in_dll(BAPI,'boss_lang_any').value
+    boss_lang_english = c_uint.in_dll(BAPI,'boss_lang_english').value
+    boss_lang_spanish = c_uint.in_dll(BAPI,'boss_lang_spanish').value
+    boss_lang_russian = c_uint.in_dll(BAPI,'boss_lang_russian').value
+        
+    # =========================================================================
+    # API Constants - Cleanliness
+    # =========================================================================
+    boss_needs_cleaning_no = c_uint.in_dll(BAPI,'boss_needs_cleaning_no').value
+    boss_needs_cleaning_yes = c_uint.in_dll(BAPI,'boss_needs_cleaning_yes').value
+    boss_needs_cleaning_unknown = c_uint.in_dll(BAPI,'boss_needs_cleaning_unknown').value
 
     # =========================================================================
     # API Functions - Error Handling
     # =========================================================================
-    ## uint32_t GetLastErrorDetails(const uint8_t **details)
-    _CGetLastErrorDetails = BAPI.GetLastErrorDetails
-    _CGetLastErrorDetails.restype = c_uint32
-    _CGetLastErrorDetails.argtypes = [c_uint8_p_p]
+    ## unsigned int boss_get_error_message(const char ** const message)
+    _CGetLastErrorDetails = BAPI.boss_get_error_message
+    _CGetLastErrorDetails.restype = c_uint
+    _CGetLastErrorDetails.argtypes = [c_char_p_p]
     def GetLastErrorDetails():
-        details = c_uint8_p()
+        details = c_char_p()
         ret = _CGetLastErrorDetails(byref(details))
-        if ret != BOSS_API_OK:
+        if ret != boss_ok:
             raise Exception(u'An error occurred while getting the details of a BOSS API error: %i' % (ret))
         return unicode(details.value,'utf8')
 
@@ -216,27 +213,26 @@ def Init(path):
     def BossErrorCheck(result):
         callback = ErrorCallbacks.get(result,None)
         if callback: callback()
-        if result in {BOSS_API_OK,BOSS_API_OK_NO_UPDATE_NECESSARY}: return result
-        elif result in {BOSS_API_WARN_BAD_FILENAME,BOSS_API_WARN_LO_MISMATCH}:
-            if DebugLevel > 0:
-                print GetLastErrorDetails()
-            return result
-        elif DebugLevel > 1:
+        if result == boss_ok: return result
+        elif DebugLevel > 0:
             print GetLastErrorDetails()
         raise BossError(result)
 
     # =========================================================================
     # API Functions - Version
     # =========================================================================
-    ## uint32_t GetVersionString(const uint8_t **bossVersionStr)
-    _CGetVersionString = BAPI.GetVersionString
+    ## unsigned int boss_get_version(unsigned int * const versionMajor, unsigned int * const versionMinor, unsigned int * const versionPatch)
+    _CGetVersionString = BAPI.boss_get_version
     _CGetVersionString.restype = BossErrorCheck
-    _CGetVersionString.argtypes = [c_uint8_p_p]
+    _CGetVersionString.argtypes = [c_uint_p, c_uint_p, c_uint_p]
     global version
-    version = c_uint8_p()
+    version = c_char_p()
     try:
-        _CGetVersionString(byref(version))
-        version = _uni(version.value)
+        verMajor = c_uint()
+        verMinor = c_uint()
+        verPatch = c_uint()
+        _CGetVersionString(byref(verMajor),byref(verMinor),byref(verPatch))
+        version = u'%i.%i.%i' % (verMajor.value,verMinor.value,verPatch.value)
     except BossError as e:
         print u'Error getting BOSS API version:', e
         version = u'Error'
@@ -244,110 +240,61 @@ def Init(path):
     # =========================================================================
     # API Functions - Lifecycle Management
     # =========================================================================
-    ## uint32_t CreateBossDb(boss_db *db, const uint32_t clientGame, const uint8_t *dataPath)
-    _CCreateBossDb = BAPI.CreateBossDb
+    ## unsigned int boss_create_db (boss_db * const db, const unsigned int clientGame, const char * const gamePath)
+    _CCreateBossDb = BAPI.boss_create_db
     _CCreateBossDb.restype = BossErrorCheck
-    _CCreateBossDb.argtypes = [boss_db_p, c_uint32, c_uint8_p]
-    ## void DestroyBossDb(boss_db db)
-    _CDestroyBossDb = BAPI.DestroyBossDb
+    _CCreateBossDb.argtypes = [boss_db_p, c_uint, c_char_p]
+    ## void boss_destroy_db(boss_db db)
+    _CDestroyBossDb = BAPI.boss_destroy_db
     _CDestroyBossDb.restype = None
     _CDestroyBossDb.argtypes = [boss_db]
 
     # =========================================================================
     # API Functions - Database Loading
     # =========================================================================
-    ## uint32_t Load(boss_db db, const uint8_t *masterlistPath, const uint8_t *userlistPath)
-    _CLoad = BAPI.Load
+    ## unsigned int boss_load_lists (boss_db db, const char * const masterlistPath,
+    ##                                const char * const userlistPath)
+    _CLoad = BAPI.boss_load_lists
     _CLoad.restype = BossErrorCheck
-    _CLoad.argtypes = [boss_db, c_uint8_p, c_uint8_p]
-    ## uint32_t EvalConditionals(boss_db db)
-    _CEvalConditionals = BAPI.EvalConditionals
+    _CLoad.argtypes = [boss_db, c_char_p, c_char_p]
+    ## unsigned int boss_eval_lists (boss_db db, const unsigned int language)
+    _CEvalConditionals = BAPI.boss_eval_lists
     _CEvalConditionals.restype = BossErrorCheck
-    _CEvalConditionals.argtypes = [boss_db]
-
-    # =========================================================================
-    # API Functions - Masterlist Updating
-    # =========================================================================
-    ## uint32_t UpateMasterlist(boss_db, const uint8_t *masterlistPath)
-    _CUpdateMasterlist = BAPI.UpdateMasterlist
-    _CUpdateMasterlist.restype = BossErrorCheck
-    _CUpdateMasterlist.argtypes = [boss_db, c_uint8_p]
-
-    # =========================================================================
-    # API Functions - Plugin Sorting
-    # =========================================================================
-    ## uint32_t GetLoadOrderMethod(boss_db db, uint32_t *method);
-    _CGetLoadOrderMethod = BAPI.GetLoadOrderMethod
-    _CGetLoadOrderMethod.restype = c_uint32
-    _CGetLoadOrderMethod.argtypes = [boss_db, c_uint32_p]
-
-    ## uint32_t SortMods(boss_db db, const bool trialOnly, uint8_t ***sortedPlugins, size_t *listLength, size_t *lastRecPos)
-    _CSortMods = BAPI.SortMods
-    _CSortMods.restype = BossErrorCheck
-    _CSortMods.argtypes = [boss_db, c_bool, c_uint8_p_p_p, c_size_t_p, c_size_t_p]
-    ## uint32_t GetLoadOrder(boss_db db, uint8_t ***plugins, size_t *numPlugins)
-    _CGetLoadOrder = BAPI.GetLoadOrder
-    _CGetLoadOrder.restype = BossErrorCheck
-    _CGetLoadOrder.argtypes = [boss_db, c_uint8_p_p_p, c_size_t_p]
-    ## uint32_t SetLoadOrder(boss_db db, uint8_t **plugins, const size_t numPlugins)
-    _CSetLoadOrder = BAPI.SetLoadOrder
-    _CSetLoadOrder.restype = BossErrorCheck
-    _CSetLoadOrder.argtypes = [boss_db, c_uint8_p_p, c_size_t]
-    ## uint32_t GetActivePlugins(boss_db db, uint8_t ***plugins, size_t *numPlugins)
-    _CGetActivePlugins = BAPI.GetActivePlugins
-    _CGetActivePlugins.restype = BossErrorCheck
-    _CGetActivePlugins.argtypes = [boss_db, c_uint8_p_p_p, c_size_t_p]
-    ## uint32_t SetActivePlugins(boss_db db, uint8_t **plugins, const size_t numPlugins)
-    _CSetActivePlugins = BAPI.SetActivePlugins
-    _CSetActivePlugins.restype = BossErrorCheck
-    _CSetActivePlugins.argtypes = [boss_db, c_uint8_p_p, c_size_t]
-    ## uint32_t GetPluginLoadOrder(boss_db db, const uint8_t *plugin, size_t *index)
-    _CGetPluginLoadOrder = BAPI.GetPluginLoadOrder
-    _CGetPluginLoadOrder.restype = BossErrorCheck
-    _CGetPluginLoadOrder.argtypes = [boss_db, c_uint8_p, c_size_t_p]
-    ## uint32_t SetPluginLoadOrder(boss_db db, const uint8_t *plugin, size_t index)
-    _CSetPluginLoadOrder = BAPI.SetPluginLoadOrder
-    _CSetPluginLoadOrder.restype = BossErrorCheck
-    _CSetPluginLoadOrder.argtypes = [boss_db, c_uint8_p, c_size_t]
-    ## uint32_t GetIndexedPlugin(boss_db db, const size_t index, uint8_t **plugin)
-    _CGetIndexedPlugin = BAPI.GetIndexedPlugin
-    _CGetIndexedPlugin.restype = BossErrorCheck
-    _CGetIndexedPlugin.argtypes = [boss_db, c_size_t, c_uint8_p_p]
-    ## uint32_t SetPluginActive(boss_db db, const uint8_t *plugin, const bool active)
-    _CSetPluginActive = BAPI.SetPluginActive
-    _CSetPluginActive.restype = BossErrorCheck
-    _CSetPluginActive.argtypes = [boss_db, c_uint8_p, c_bool]
-    ## uint32_t IsPluginActive(boss_db db, const uint8_t *plugin, bool *isActive)
-    _CIsPluginActive = BAPI.IsPluginActive
-    _CIsPluginActive.restype = BossErrorCheck
-    _CIsPluginActive.argtypes = [boss_db, c_uint8_p, c_bool_p]
+    _CEvalConditionals.argtypes = [boss_db, c_uint]
 
     # =========================================================================
     # API Functions - Database Access
     # =========================================================================
-    ## uint32_t GetBashTagMap(boss_db db, BashTag **tagMap, size_t *numTags)
-    _CGetBashTagMap = BAPI.GetBashTagMap
+    ## unsigned int boss_get_tag_map (boss_db db, char *** const tagMap, size_t * const numTags)
+    _CGetBashTagMap = BAPI.boss_get_tag_map
     _CGetBashTagMap.restype = BossErrorCheck
-    _CGetBashTagMap.argtypes = [boss_db, BashTag_p_p, c_size_t_p]
-    ## uint32_t GetModBashTags(boss_db db, const uint8_t *plugin, uint32_t **tagIds_added, size_t *numTags_added, uint32_t **tagIds_removed, size_t *numTags_removed, bool *userlistModified)
-    _CGetModBashTags = BAPI.GetModBashTags
+    _CGetBashTagMap.argtypes = [boss_db, c_char_p_p_p, c_size_t_p]
+    ## unsigned int boss_get_plugin_tags (boss_db db, const char * const plugin,
+    ##                                        unsigned int ** const tags_added,
+    ##                                        size_t * const numTags_added,
+    ##                                        unsigned int ** const tags_removed,
+    ##                                        size_t * const numTags_removed,
+    ##                                        bool * const userlistModified)
+    _CGetModBashTags = BAPI.boss_get_plugin_tags
     _CGetModBashTags.restype = BossErrorCheck
-    _CGetModBashTags.argtypes = [boss_db, c_uint8_p, c_uint32_p_p, c_size_t_p, c_uint32_p_p, c_size_t_p, c_bool_p]
-    ## uint32_t GetDirtyMessage(boss_db db, const uint8_t *plugin, uint8_t **message, uint32_t *needsCleaning)
-    _CGetDirtyMessage = BAPI.GetDirtyMessage
+    _CGetModBashTags.argtypes = [boss_db, c_char_p, c_uint_p_p, c_size_t_p, c_uint_p_p, c_size_t_p, c_bool_p]
+    ## boss_get_dirty_message (boss_db db, const char * const plugin,
+    ##                                          boss_message * const message,
+    ##                                          unsigned int * const needsCleaning)
+    _CGetDirtyMessage = BAPI.boss_get_dirty_message
     _CGetDirtyMessage.restype = BossErrorCheck
-    _CGetDirtyMessage.argtypes = [boss_db, c_uint8_p, c_uint8_p_p, c_uint32_p]
-    ## uint32_t DumpMinimal(boss_db db, const uint8_t *file, const bool overwrite)
-    _CDumpMinimal = BAPI.DumpMinimal
+    _CGetDirtyMessage.argtypes = [boss_db, c_char_p, boss_message_p, c_uint_p]
+    ## unsigned int boss_write_minimal_list (boss_db db, const char * const outputFile, const bool overwrite)
+    _CDumpMinimal = BAPI.boss_write_minimal_list
     _CDumpMinimal.restype = BossErrorCheck
-    _CDumpMinimal.argtypes = [boss_db, c_uint8_p, c_bool]
+    _CDumpMinimal.argtypes = [boss_db, c_char_p, c_bool]
 
     # =========================================================================
     # Class Wrapper
     # =========================================================================
     class BossDb(object):
         def __init__(self,gamePath,game='Oblivion'):
-            """ game can be one of the BOSS_API_GAME_*** codes, or one of the
+            """ game can be one of the boss_game_*** codes, or one of the
                 aliases defined above in the 'games' dictionary."""
             if isinstance(game,basestring):
                 if game in games:
@@ -357,13 +304,6 @@ def Init(path):
             self.tags = {}   # BashTag map
             self._DB = boss_db()
             _CCreateBossDb(byref(self._DB),game,_enc(gamePath))
-            # Get Load Order Method
-            method = c_uint32()
-            _CGetLoadOrderMethod(self._DB,byref(method))
-            self._LOMethod = method.value
-
-        @property
-        def LoadOrderMethod(self): return self._LOMethod
 
         def __del__(self):
             if self._DB is not None:
@@ -380,227 +320,27 @@ def Init(path):
         def Load(self, masterlist, userlist=None):
             # Load masterlist/userlist
             _CLoad(self._DB, _enc(masterlist), _enc(userlist) if userlist else None)
-            _CEvalConditionals(self._DB)
+            _CEvalConditionals(self._DB, boss_lang_any)
             self._GetBashTags()
 
         def EvalConditionals(self):
-            _CEvalConditionals(self._DB)
+            _CEvalConditionals(self._DB, boss_lang_any)
             self._GetBashTags()
 
         def _GetBashTags(self):
             num = c_size_t()
-            bashTags = BashTag_p()
+            bashTags = c_char_p_p()
             _CGetBashTagMap(self._DB, byref(bashTags), byref(num))
-            self.tags = {bashTags[i].id:_uni(bashTags[i].name)
+            self.tags = {i:_uni(bashTags[i])
                          for i in xrange(num.value)}
-
-        # ---------------------------------------------------------------------
-        # Load Order management
-        # ---------------------------------------------------------------------
-        class LoadOrderList(list):
-            """list-like object for manipulating load order"""
-            def SetBossDb(self,db):
-                self._DB = db # BossDb python class, not boss_db pointer
-
-            # Block the following 'list' functions, since they don't make sense
-            # for use with the BOSS API and Load Order
-            ## LoadOrder[i] = x
-            def __setitem__(self,key,value): raise Exception('BossDb.LoadOrder does not support item setting')
-            ## del LoadOrder[i]
-            def __delitem__(self,key): raise Exception('BossDb.LoadOrder does not support item deletion')
-            ## LoadOrder += [s,3,5]
-            ##  and other compound assignment operators
-            def __iadd__(self,other): raise Exception('BossDb.LoadOrder does not support compound assignment')
-            def __isub__(self,other): raise Exception('BossDb.LoadOrder does not support compound assignment')
-            def __imul__(self,other): raise Exception('BossDb.LoadOrder does not support compound assignment')
-            def __idiv__(self,other): raise Exception('BossDb.LoadOrder does not support compound assignment')
-            def __itruediv__(self,other): raise Exception('BossDb.LoadOrder does not support compound assignment')
-            def __ifloordiv__(self,other): raise Exception('BossDb.LoadOrder does not support compound assignment')
-            def __imod__(self,other): raise Exception('BossDb.LoadOrder does not support compound assignment')
-            def __ipow__(self,other): raise Exception('BossDb.LoadOrder does not support compound assignment')
-            def __ilshift__(self,other): raise Exception('BossDb.LoadOrder does not support compound assignment')
-            def __irshift__(self,other): raise Exception('BossDb.LoadOrder does not support compound assignment')
-            def __iand__(self,other): raise Exception('BossDb.LoadOrder does not support compound assignment')
-            def __ixor__(self,other): raise Exception('BossDb.LoadOrder does not support compound assignment')
-            def __ior__(self,other): raise Exception('BossDb.LoadOrder does not support compound assignment')
-            ## LoadOrder.append('ahalal')
-            def append(self,item): raise Exception('BossDb.LoadOrder does not support append.')
-            ## LoadOrder.extend(['kkjjhk','kjhaskjd'])
-            def extend(self,items): raise Exception('BossDb.LoadOrder does not support extend.')
-            def remove(self,item): raise Exception('BossDb.LoadOrder does not support remove.')
-            def pop(self,item): raise Exception('BossDb.LoadOrder does not support pop.')
-            ## TODO: Possibly make this call BOSS's auto-sorting
-            def sort(self,*args,**kwdargs): raise Exception('BossDb.LoadOrder does not support sort.')
-            def reverse(self,*args,**kwdargs): raise Exception('BossDb.LoadOrder does not support reverse.')
-
-            # Override the following with custom functions
-            def insert(self,i,x):
-                # Change Load Order of single plugin
-                self._DB.SetPluginLoadOrder(x, i)
-            def index(self,x):
-                # Get Load Order of single plugin
-                return self._DB.GetPluginLoadOrder(x)
-            def count(self,x):
-                # 1 if the plugin is in the Load Order, 0 otherwise
-                # (plugins can't be in the load order multiple times)
-                return 1 if x in self else 0
-
-        def GetLoadOrder(self):
-            plugins = c_uint8_p_p()
-            num = c_size_t()
-            _CGetLoadOrder(self._DB, byref(plugins), byref(num))
-            return [GPath(_uni(plugins[i])) for i in xrange(num.value)]
-        def _GetLoadOrder(self):
-            ret = self.LoadOrderList(self.GetLoadOrder())
-            ret.SetBossDb(self)
-            return ret
-        def SetLoadOrder(self, plugins):
-            plugins = [_enc(x) for x in plugins]
-            num = len(plugins)
-            plugins = list_of_strings(plugins)
-            _CSetLoadOrder(self._DB, plugins, num)
-        LoadOrder = property(_GetLoadOrder,SetLoadOrder)
-
-        def SortMods(self,trialOnly=False):
-            plugins = c_uint8_p_p()
-            num = c_size_t()
-            lastRec = c_size_t()
-            _CSortMods(self._DB,byref(plugins),byref(num),byref(lastRec))
-            return [GPath(_uni(plugins[i])) for i in xrange(num.value)]
-
-        def GetPluginLoadOrder(self, plugin):
-            plugin = _enc(plugin)
-            index = c_size_t()
-            _CGetPluginLoadOrder(self._DB,plugin,byref(index))
-            return index.value
-
-        def SetPluginLoadOrder(self, plugin, index):
-            plugin = _enc(plugin)
-            _CSetPluginLoadOrder(self._DB,plugin,index)
-
-        def GetIndexedPlugin(self, index):
-            plugin = c_uint8_p()
-            _CGetIndexedPlugin(self._DB,index,byref(plugin))
-            return GPath(_uni(plugin.value))
-
-        # ---------------------------------------------------------------------
-        # Active plugin management
-        # ---------------------------------------------------------------------
-        class ActivePluginsList(list):
-            """list-like object for modiying which plugins are active.
-               Currently, you cannot change the Load Order through this
-               object, perhaps in the future."""
-            def SetBossDb(self,db):
-                self._DB = db
-
-            def ReSync(self):
-                """Resync's contents with the BOSS API"""
-                list.__setslice__(self,0,len(self),self._DB.ActivePlugins)
-
-            # Block the following 'list' functions, since they don't make sense
-            # for use with the BOSS API and Active Plugins
-            ## ActivePlugins[i] = x
-            def __setitem__(self,key,value): raise Exception('BossDb.ActivePlugins does not support item setting')
-            ## LoadOrder *= 3
-            ##  and other compound assignment operators
-            def __imul__(self,other): raise Exception('BossDb.ActivePlugins does not support compound assignment')
-            def __idiv__(self,other): raise Exception('BossDb.ActivePlugins does not support compound assignment')
-            def __itruediv__(self,other): raise Exception('BossDb.ActivePlugins does not support compound assignment')
-            def __ifloordiv__(self,other): raise Exception('BossDb.ActivePlugins does not support compound assignment')
-            def __imod__(self,other): raise Exception('BossDb.ActivePlugins does not support compound assignment')
-            def __ipow__(self,other): raise Exception('BossDb.ActivePlugins does not support compound assignment')
-            def __ilshift__(self,other): raise Exception('BossDb.ActivePlugins does not support compound assignment')
-            def __irshift__(self,other): raise Exception('BossDb.ActivePlugins does not support compound assignment')
-            def __iand__(self,other): raise Exception('BossDb.ActivePlugins does not support compound assignment')
-            def __ixor__(self,other): raise Exception('BossDb.ActivePlugins does not support compound assignment')
-            def __ior__(self,other): raise Exception('BossDb.ActivePlugins does not support compound assignment')
-            def pop(self,item): raise Exception('BossDb.ActivePlugins does not support pop.')
-            def sort(self,*args,**kwdargs): raise Exception('BossDb.ActivePlugins does not support sort.')
-            def reverse(self,*args,**kwdargs): raise Exception('BossDb.ActivePlugins does not support reverse.')
-
-
-            ## del ActivePlugins[i]
-            def __delitem__(self,key):
-                # Deactivate the plugin
-                self._DB.SetPluginActive(self[key],False)
-                self.ReSync()
-
-            ## ActivePlugins += ['test.esp','another.esp']
-            def __iadd__(self,other):
-                for plugin in other:
-                    self._DB.SetPluginActive(plugin,True)
-                self.ReSync()
-                return self
-            ## ActivePlugins -= ['test.esp','another.esp']
-            def __isub__(self,other):
-                for plugin in other:
-                    self._DB.SetPluginActive(plugin,False)
-                self.ReSync()
-                return self
-
-            ## ActivePlugins.append('test.esp')
-            def append(self,item):
-                self._DB.SetPluginActive(item,True)
-                self.ReSync()
-
-            ## ActivePlugins.extend(['test.esp','another.esp'])
-            def extend(self,items):
-                for plugin in items:
-                    self._DB.SetPluginActive(plugin,True)
-                self.ReSync()
-
-            ## ActivePlugins.remove('test.esp')
-            def remove(self,item):
-                self._DB.SetPluginActive(item,False)
-                self.ReSync()
-
-            ## ActivePlugins.insert('test.esp')
-            def insert(self,index,item):
-                self._DB.SetPluginActive(item,True)
-                self.ReSync()
-
-            ## ActivePlugins.count('test.esp')
-            def count(self,item):
-                return 1 if item in self else 0
-
-        def GetActivePlugins(self):
-            plugins = c_uint8_p_p()
-            num = c_size_t()
-            try:
-                _CGetActivePlugins(self._DB, byref(plugins), byref(num))
-            except BossError as e:
-                if e.code == BOSS_API_ERROR_FILE_NOT_FOUND:
-                    self.SetActivePlugins([])
-                    _CGetActivePlugins(self._DB, byref(plugins), byref(num))
-                else:
-                    raise
-            return [GPath(_uni(plugins[i])) for i in xrange(num.value)]
-        def _GetActivePlugins(self):
-            ret = self.ActivePluginsList(self.GetActivePlugins())
-            ret.SetBossDb(self)
-            return ret
-        def SetActivePlugins(self,plugins):
-            plugins = [_enc(x) for x in plugins]
-            num = len(plugins)
-            plugins = list_of_strings(plugins)
-            _CSetActivePlugins(self._DB, plugins, num)
-        ActivePlugins = property(_GetActivePlugins,SetActivePlugins)
-
-        def SetPluginActive(self,plugin,active=True):
-            _CSetPluginActive(self._DB,_enc(plugin),active)
-
-        def IsPluginActive(self,plugin):
-            active = c_bool()
-            _CIsPluginActive(self._DB,_enc(plugin),byref(active))
-            return active.value
 
         # ---------------------------------------------------------------------
         # DB Access
         # ---------------------------------------------------------------------
         def GetModBashTags(self,plugin):
-            tagIds_added = c_uint32_p()
+            tagIds_added = c_uint_p()
             numAdded = c_size_t()
-            tagIds_removed = c_uint32_p()
+            tagIds_removed = c_uint_p()
             numRemoved = c_size_t()
             userlist = c_bool()
             _CGetModBashTags(self._DB, _enc(plugin),
@@ -612,10 +352,10 @@ def Init(path):
             return (added, removed, userlist.value)
 
         def GetDirtyMessage(self,plugin):
-            message = c_uint8_p()
-            clean = c_uint32()
+            message = boss_message()
+            clean = c_uint()
             _CGetDirtyMessage(self._DB,_enc(plugin),byref(message),byref(clean))
-            return (_uni(message.value),clean.value)
+            return (_uni(message.message.value),clean.value)
             
         def DumpMinimal(self,file,overwrite):
             _CDumpMinimal(self._DB,_enc(file),overwrite)
@@ -623,27 +363,12 @@ def Init(path):
         # ---------------------------------------------------------------------
         # Utility Functions (not added by the API, pure Python)
         # ---------------------------------------------------------------------
-        def FilterActive(self,plugins,active=True):
-            """Given a list of plugins, returns the subset of that list,
-               consisting of:
-                - only active plugins if 'active' is True
-                - only inactive plugins if 'active' is False"""
-            return [x for x in plugins if self.IsPluginActive(x)]
 
-        def FilterDirty(self,plugins,cleanCode=BOSS_API_CLEAN_YES):
+        def FilterDirty(self,plugins,cleanCode=boss_needs_cleaning_yes):
             """Given a list of plugins, returns the subset of that list,
-               consisting of plugins that meet the given BOSS_API_CLEAN_*
+               consisting of plugins that meet the given boss_needs_cleaning_*
                code"""
             return [x for x in plugins if self.GetDirtyMessage(x)[1] == cleanCode]
-
-        def DeactivatePlugins(self,plugins):
-            for plugin in plugins:
-                self.SetPluginActive(plugin,False)
-
-        def GetOrdered(self,plugins):
-            """Returns a list of the given plugins, sorted accoring to their
-               load order"""
-            return [x for x in self.LoadOrder if x in plugins]
 
     # Put the locally defined functions, classes, etc into the module global namespace
     globals().update(locals())

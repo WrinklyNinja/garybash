@@ -12188,8 +12188,6 @@ class ConfigHelpers:
         #boss = bapi.BossDb(GPath(dirs['mods'].s).s,bush.game.name)
         boss = bapi.BossDb(GPath(dirs['app'].s).s,'Fallout: New Vegas')
         deprint('Using BOSS API version:', bapi.version)
-        bapi.RegisterCallback(bapi.BOSS_API_WARN_LO_MISMATCH,
-                              ConfigHelpers.bossLOMismatchCallback)
 
         self.bossVersion = dirs['boss'].join('BOSS.exe').version
         if self.bossVersion >= (2,0,0,0):
@@ -12265,7 +12263,7 @@ class ConfigHelpers:
 
     def getDirtyMessage(self,modName):
         message,clean = boss.GetDirtyMessage(modName)
-        cleanIt = clean == bapi.BOSS_API_CLEAN_YES
+        cleanIt = clean == bapi.boss_needs_cleaning_yes
         return (cleanIt,message)
 
     #--Mod Checker ------------------------------------------------------------

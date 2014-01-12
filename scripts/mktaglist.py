@@ -98,7 +98,7 @@ if oblivionDir:
     print u'Getting masterlist from %s' % masterlistDir
     taglistDir = u'../Mopy/taglist/Oblivion/taglist.txt'
     if os.path.exists(masterlistDir):
-        boss = bapi.BossDb(oblivionDir,bapi.BOSS_API_GAME_OBLIVION)
+        boss = bapi.BossDb(oblivionDir,bapi.boss_game_tes4)
         boss.Load(masterlistDir)
         boss.DumpMinimal(taglistDir,True)
         print u'Oblivion masterlist converted.'
@@ -114,7 +114,7 @@ if skyrimDir:
     print u'Getting masterlist from %s' % masterlistDir
     taglistDir = u'../Mopy/taglist/Skyrim/taglist.txt'
     if os.path.exists(masterlistDir):
-        boss = bapi.BossDb(skyrimDir,bapi.BOSS_API_GAME_SKYRIM)
+        boss = bapi.BossDb(skyrimDir,bapi.boss_game_tes5)
         boss.Load(masterlistDir)
         boss.DumpMinimal(taglistDir,True)
         print u'Skyrim masterlist converted.'
@@ -130,7 +130,7 @@ if fallout3Dir:
     print u'Getting masterlist from %s' % masterlistDir
     taglistDir = u'../Mopy/taglist/Fallout 3/taglist.txt'
     if os.path.exists(masterlistDir):
-        boss = bapi.BossDb(fallout3Dir,bapi.BOSS_API_GAME_FALLOUT3)
+        boss = bapi.BossDb(fallout3Dir,bapi.boss_game_fo3)
         boss.Load(masterlistDir)
         boss.DumpMinimal(taglistDir,True)
         print u'Fallout 3 masterlist converted.'
@@ -146,7 +146,7 @@ if falloutNVDir:
     print u'Getting masterlist from %s' % masterlistDir
     taglistDir = u'../Mopy/taglist/Fallout New Vegas/taglist.txt'
     if os.path.exists(masterlistDir):
-        boss = bapi.BossDb(falloutNVDir,bapi.BOSS_API_GAME_FALLOUTNV)
+        boss = bapi.BossDb(falloutNVDir,bapi.boss_game_fonv)
         boss.Load(masterlistDir)
         boss.DumpMinimal(taglistDir,True)
         print u'Fallout New Vegas masterlist converted.'
