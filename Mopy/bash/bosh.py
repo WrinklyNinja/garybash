@@ -12233,15 +12233,15 @@ class ConfigHelpers:
                     deprint('An error occured while using the BOSS API:',traceback=True)
             if not firstTime: return
         #--No masterlist, use the taglist
-        taglist = dirs['mods'].join('Bash Patches','taglist.txt')
+        taglist = dirs['mods'].join('Bash Patches','taglist.yaml')
         if not taglist.exists():
-            raise bolt.BoltError('Data\\Bash Patches\\taglist.txt could not be found.  Please ensure Wrye Bash is installed correctly.')
+            raise bolt.BoltError('Data\\Bash Patches\\taglist.yaml could not be found.  Please ensure Wrye Bash is installed correctly.')
         try:
             self.tagCache = {}
             boss.Load(taglist.s)
         except bapi.BossError:
-            deprint('An error occured while parsing taglist.txt with the BOSS API.', traceback=True)
-            raise bolt.BoltError('An error occured while parsing taglist.txt with the BOSS API.')
+            deprint('An error occured while parsing taglist.yaml with the BOSS API.', traceback=True)
+            raise bolt.BoltError('An error occured while parsing taglist.yaml with the BOSS API.')
 
     def getBashTags(self,modName):
         """Retrieves bash tags for given file."""
