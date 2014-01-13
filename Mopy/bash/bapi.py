@@ -321,6 +321,9 @@ def Init(path):
             _CLoad(self._DB, _enc(masterlist), _enc(userlist) if userlist else None)
             _CEvalConditionals(self._DB, boss_lang_any)
             self._GetBashTags()
+            
+        def PlainLoad(self, masterlist, userlist=None):
+            _CLoad(self._DB, _enc(masterlist), _enc(userlist) if userlist else None)
 
         def EvalConditionals(self):
             _CEvalConditionals(self._DB, boss_lang_any)
