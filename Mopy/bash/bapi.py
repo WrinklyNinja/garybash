@@ -292,7 +292,7 @@ def Init(path):
     # Class Wrapper
     # =========================================================================
     class BossDb(object):
-        def __init__(self,gamePath,game='Oblivion'):
+        def __init__(self,gamePath,game='Fallout: New Vegas'):
             """ game can be one of the boss_game_*** codes, or one of the
                 aliases defined above in the 'games' dictionary."""
             if isinstance(game,basestring):
@@ -318,7 +318,6 @@ def Init(path):
         # ---------------------------------------------------------------------
         def Load(self, masterlist, userlist=None):
             # Load masterlist/userlist
-            print masterlist
             _CLoad(self._DB, _enc(masterlist), _enc(userlist) if userlist else None)
             _CEvalConditionals(self._DB, boss_lang_any)
             self._GetBashTags()
