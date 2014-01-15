@@ -1485,7 +1485,7 @@ class DataDict:
             return self.data[key]
         else:
             if isinstance(key, Path):
-                return self.data[Path(game.masterFiles[0])]
+                return self.data[Path('Fallout3.esm')]
     def __setitem__(self,key,value):
         self.data[key] = value
     def __delitem__(self,key):
