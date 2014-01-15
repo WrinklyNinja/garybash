@@ -19,6 +19,8 @@ Files in this branch that are not diffs are not present in the Bash source at co
 
 The Bashed Lists documentation at `Mopy\Docs\Bashed Lists.md` needs to be integrated into the Bash docs, and is not intended to be kept in its current form.
 
+The file at `Mopy\bash\game\fallout.py` needs to have its contents added to the currently-missing `fallout3.py` and `falloutnv.py` files.
+
 ## Missing files
 
 The following files that are present in Flash but are not in this branch as either files or diffs yet. Once editing of them has finished, they will be added.
