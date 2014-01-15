@@ -10,6 +10,16 @@
 masterFiles = [
     u'Fallout3.esm',
     ]
+
+#--INI files that should show up in the INI Edits tab
+iniFiles = [
+    u'FalloutPrefs.ini',
+    ]
+
+#--URL to the Nexus site for this game
+nexusUrl = u'http://www.fallout3nexus.com/'
+nexusName = u'Fallout 3 Nexus'
+nexusKey = 'bash.installers.openFallout3Nexus'
     
 #--Script Extender information
 class se:
@@ -456,3 +466,8 @@ conditionFunctionData = ( #--0: no param; 1: int param; 2: formid param
     (1028, 'GetWeight', 2, 0, 0, 0),
     (1165, 'GetWeaponHasScope', 0, 0, 0, 0),
     )
+
+#--Plugin format stuff
+class esp:
+    #--Valid ESM/ESP header versions
+    validHeaderVersions = (0.85)
