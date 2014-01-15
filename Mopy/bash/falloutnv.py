@@ -13,6 +13,15 @@ masterFiles = [
     u'FalloutNV.esm',
     ]
     
+#--Script Extender information
+class se:
+    shortName = u'NVSE'                      # Abbreviated name
+    longName = u'Fallout Script Extender'   # Full name
+    exe = u'nvse_loader.exe'                 # Exe to run
+    steamExe = u'nvse_loader.dll'           # Exe to run if a steam install
+    url = u'http://nvse.silverlock.org/'     # URL to download from
+    urlTip = u'http://nvse.silverlock.org/'  # Tooltip for mouse over the URL
+    
 #--Game ESM/ESP/BSA files
 bethDataFiles = set((
     #--Vanilla

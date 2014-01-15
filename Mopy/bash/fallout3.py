@@ -11,6 +11,15 @@ masterFiles = [
     u'Fallout3.esm',
     ]
     
+#--Script Extender information
+class se:
+    shortName = u'FOSE'                      # Abbreviated name
+    longName = u'Fallout 3 Script Extender'   # Full name
+    exe = u'fose_loader.exe'                 # Exe to run
+    steamExe = u'fose_loader.dll'           # Exe to run if a steam install
+    url = u'http://fose.silverlock.org/'     # URL to download from
+    urlTip = u'http://fose.silverlock.org/'  # Tooltip for mouse over the URL
+    
 #--Game ESM/ESP/BSA files
 bethDataFiles = set((
     #--Vanilla
