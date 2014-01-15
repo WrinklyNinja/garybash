@@ -7,27 +7,20 @@ An alternative port of the "Wrye Bash" for Fallout 3/NewVegas.
 
 This branch holds all the files that are unique to Wrye Flash / Flash NV and that must be added to Bash as part of work to add support for FO3 and FNV to Bash. The directory structure used mimics that of the latest Bash `master` source, though the diff used to determine the changes used Bash commit 5d6ceae9b846aabb31b8ea4c51ce61ebac4a8f7f for comparison against the `master-newvegas-merge` branch. 
 
+Where the latest Bash source is referenced, this refers to commit 9c20f9184f0b802051d5f60a9b65e7f25aa8661a at https://github.com/Utumno/wrye_bash_refactoring.git.
+
 ## Modified Files
 
-Files that have been modified by Flash are present as diffs at this stage. Currently the following file diffs are missing while their files are still being edited.
+Files that have been modified by Flash are present as diffs at this stage. These diffs will be edited to remove unnecessary changes. The changes to the files they reference in the Bash source since commit 5d6ceae9b846aabb31b8ea4c51ce61ebac4a8f7f will be traced, and the changes in the diffs then applied as appropriate to the latest Bash source.
 
-* `Mopy\bash\basher.py`
-* `Mopy\bash\bosh.py`
+## New Files
 
-None of the modified files have yet been processed to remove any unnecessary modifications.
+Files in this branch that are not diffs are not present in the Bash source at commit 5d6ceae9b846aabb31b8ea4c51ce61ebac4a8f7f, and are also not present in the latest Bash source.
 
-## WIP New Files
+The following files are still WIP:
 
-Apart from these files, the content of this branch is ready for integration into the Bash repository.
-
-* `Mopy\Docs\Bashed Lists.html`
-* `Mopy\Docs\Bashed Lists.txt`
-* `Mopy\Docs\Wrye Flash (FNV).txt`
-* `Mopy\Docs\Wrye Flash (FO3).txt`
-* `Mopy\bash\l10n\Japanese (FNV-specific).txt`
-* `Mopy\bash\l10n\Japanese.txt`
-
-The docs need to have any relevant info extracted and rewritten for inclusion into the Bash docs, and the Japanese translation files need to be combined and turned into gettext translation files.
+* The translation file at `Mopy\bash\l10n\Japanese.txt` needs to be converted from its current format to the gettext format used by the latest Bash source.
+* The Bashed Lists documentation at `Mopy\Docs\Bashed Lists.md` needs to be integrated into the Bash docs. There's also a lot of undocumented things that need to be documented.
 
 ## Missing files
 
@@ -35,3 +28,5 @@ The following files that are present in Flash but are not in this branch as eith
 
 * `Mopy\bash\game\fallout3.py`
 * `Mopy\bash\game\falloutnv.py`
+* `Mopy\bash\basher.py`
+* `Mopy\bash\bosh.py`
