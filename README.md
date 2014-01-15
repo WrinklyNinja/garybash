@@ -17,10 +17,7 @@ Files that have been modified by Flash are present as diffs at this stage. These
 
 Files in this branch that are not diffs are not present in the Bash source at commit 5d6ceae9b846aabb31b8ea4c51ce61ebac4a8f7f, and are also not present in the latest Bash source.
 
-The following files are still WIP:
-
-* The translation file at `Mopy\bash\l10n\Japanese.txt` needs to be converted from its current format to the gettext format used by the latest Bash source.
-* The Bashed Lists documentation at `Mopy\Docs\Bashed Lists.md` needs to be integrated into the Bash docs. There's also a lot of undocumented things that need to be documented.
+The Bashed Lists documentation at `Mopy\Docs\Bashed Lists.md` needs to be integrated into the Bash docs, and is not intended to be kept in its current form.
 
 ## Missing files
 
