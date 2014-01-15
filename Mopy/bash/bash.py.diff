@@ -1,0 +1,29 @@
+diff --git a/Mopy/bash/bash.py b/Mopy/bash/bash.py
+index fc412d8..7c6be99 100644
+--- a/Mopy/bash/bash.py
++++ b/Mopy/bash/bash.py
+@@ -161,12 +161,12 @@ def main():
+     parser = optparse.OptionParser()
+     pathGroup = optparse.OptionGroup(parser, "Path Arguments",
+                          r"All path arguments must be absolute paths and use either forward slashes (/) or two backward slashes (\\). All of these can also be set in the ini (where  you can also use relative paths) and if set in both cmd line takes precedence.")
+-    pathGroup.add_option('-o', '--oblivionPath',
++    pathGroup.add_option('-o', '--falloutPath',
+                         action='store',
+                         type='string',
+                         default='',
+-                        dest='oblivionPath',
+-                        help='Specifies the Oblivion directory (the one containing Oblivion.exe). Use this argument if Bash is located outside of the Oblivion directory.')
++                        dest='falloutPath',
++                        help='Specifies the Fallout3 directory (the one containing Fallout3.exe). Use this argument if Bash is located outside of the Fallout3 directory.')
+     userPathGroup = optparse.OptionGroup(parser, "'User Directory Arguments",
+                         'These arguments allow you to specify your user directories in several ways.'
+                         ' These are only useful if the regular procedure for getting the user directory fails.'
+@@ -291,7 +291,7 @@ def main():
+     try:
+         bolt.CBash = opts.mode
+         import bosh
+-        bosh.initBosh(opts.personalPath,opts.localAppDataPath,opts.oblivionPath)
++        bosh.initBosh(opts.personalPath,opts.localAppDataPath,opts.falloutPath)
+         bosh.exe7z = bosh.dirs['compiled'].join(bosh.exe7z).s
+ 
+         # if HTML file generation was requested, just do it and quit

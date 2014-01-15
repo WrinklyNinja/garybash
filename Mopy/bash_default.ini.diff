@@ -1,0 +1,125 @@
+diff --git a/Mopy/bash_default.ini b/Mopy/bash_default.ini
+index 38f664d..b9848f4 100644
+--- a/Mopy/bash_default.ini
++++ b/Mopy/bash_default.ini
+@@ -16,8 +16,8 @@
+ 
+ ;  Paths - You can use either:
+ ;	Absolute Path
+-;		Example=C:\Games\Oblivion Mods
+-;	Relative path, where path is relative to the Oblivion install directory
++;		Example=C:\Games\Fallout 3 Mods
++;	Relative path, where path is relative to the Fallout 3 install directory
+ ;		Example=Tools\Tes4Files.exe
+ ;    _____                                 _ 
+ ;   / ____|                               | |
+@@ -27,31 +27,31 @@
+ ;   \_____| \___||_| |_| \___||_|   \__,_||_|
+ 
+ [General]
+-;--sOblivionMods is the Alternate root directory for installers, etc.
++;--sFallout3Mods is the Alternate root directory for installers, etc.
+ 
+-;  It is strongly recommended that you do NOT put it anywhere under the 
+-;  Oblivion install directory itself, because Oblivion.exe will search through
++;  It is strongly recommended that  you do NOT put it anywhere under the 
++;  Fallout 3 install directory itself,  because Fallout3.exe will  search through
+ ;  every directory under the install directory.
+ ;  This "directory thrashing" can then cause performance problems during gameplay.
+-;  sOblivionMods is defined specifically to circumvent this bug by storing files elsewhere.
+-sOblivionMods=..\Oblivion Mods
++;  sFallout3Mods is defined specifically to circumvent  this bug by storing files elsewhere.
++sFallout3Mods=..\Fallout 3 Mods
+ 
+ ;--sInstallersData is the directory containing data about which installers
+ ;  are installed by Wrye Bash.  This is where 'Installers.dat' and 'Converters.dat'
+ ;  are stored.  Only change this for advanced configuration, such as when using
+ ;  mTES4 Manager to manage multiple Oblivion installs.
+-sInstallersData=..\Oblivion Mods\Bash Installers\Bash
++sInstallersData=..\Fallout 3 Mods\Bash Installers\Bash
+ 
+ ;--sBashModData is the directory containing data about your mods, ini edits, etc.
+ ;  Only change this for advanced configuration, such as when using mTES4 Manager
+ ;  to manage multiple Oblivion installs.
+-sBashModData=..\Oblivion Mods\Bash Mod Data
++sBashModData=..\Fallout 3 Mods\Bash Mod Data
+ 
+-;--OblivionPath is the Oblivion directory (containing Oblivion.exe).
+-;  Use this argument if Bash is located outside of the Oblivion directory.
+-;  If using a relative path, will be relative to the Mopy directory.
+-;  Example=C:\Games\Oblivion
+-sOblivionPath=.
++;--Fallout3Path is the Fallout 3 directory (containing Fallout3.exe).
++;  Use this argument if Bash is located outside of the Fallout 3 directory.
++;  If using a relative path, will be relative to the Mopy directory
++;  Example=C:\Games\Fallout 3
++sFallout3Path=.
+ 
+ ;--User directory arguments.
+ ;  These arguments allow you to specify your user directories in several ways.
+@@ -68,7 +68,7 @@ sUserPath=.
+ ;  Example=C:\Documents and Settings\Wrye\My Documents
+ sPersonalPath=.
+ 
+-;--LocalAppDataPath is the user's local application data directory.
++;--LocalAppDataPath is  the user's local application data directory.
+ ;  Must be used in conjunction with the -p argument.
+ ;  Example=C:\Documents and Settings\Wrye\Local Settings\Application Data
+ sLocalAppDataPath=.
+@@ -124,9 +124,9 @@ bEnableReplacers=False
+ ;  timestamps.  If enables, BSAs will be set to 1-1-2006 automatically.
+ bResetBSATimestamps=True
+ 
+-;--sOblivionTexturesBSAName: use if you have renamed Oblivion - Textures - Compressed.bsa
++;--sFalloutTexturesBSAName: use if you have renamed Fallout - Textures.bsa
+ ;  and are using BSA Redirection.
+-sOblivionTexturesBSAName=.
++sFalloutTexturesBSAName=.
+ 
+ ;--bClearRO: whether or not Wrye Bash automically on installers launch clears ReadOnly
+ ;  flags from the mods directory (Oblivion\Data).
+@@ -191,7 +191,7 @@ sSoundSuccess=.
+ [Tool Options]
+ 
+ ; All tool launcher options for paths can be absolute paths or relative from the head
+-; of the oblivion folder (that's the one with your Oblivion.exe in it). Any others are explained with the option.
++; of the Fallout 3 folder (that's the one with your Fallout3.exe in it). Any others are explained with the option.
+ 
+ ;--Whether or not to show the various larger non core tool launcher segments.
+ bShowTextureToolLaunchers=True
+@@ -202,28 +202,18 @@ bShowAudioToolLaunchers=True
+ ;=========ESM/ESP/LOD/NIF Tool Launchers===========;
+ ;==================================================;
+ 
+-;--sTes4GeckoPath is the path to look for Tes4Gecko.
+-;  (defaults to Tes4Gecko.jar).
+-;	sTes4GeckoJavaArg is the memory size argument used for launching Tes4Gecko.
+-sTes4GeckoPath=Tes4Gecko.jar
+-sTes4GeckoJavaArg=-Xmx1024m
+-
+-;--sTes4FilesPath is the path that Bash will look for Tes4Files.
+-;  (defaults to Tes4Files.exe).
+-sTes4FilesPath=Tools\Tes4Files.exe
+-
+-;--sTes4EditPath is the path that Bash will look for Tes4Edit\View\Trans.
+-;  (defaults to Tes4Edit.exe).
+-sTes4EditPath=Tes4Edit.exe
+-
+-;--sTes4LodGenPath is the path that Bash will look for Tes4LodGen.
+-;  (defaults to Tes4LodGen.exe).
+-sTes4LodGenPath=Tes4LodGen.exe
++;--sFNVEditPath is the path that Bash will look for FNVEdit\FNVMasterRestore.exe\FNVMasterUpdate.exe.
++;  (defaults to FNVEdit.exe).
++sFO3EditPath=FO3Edit.exe
+ 
+ ;--sNifskopePath is the path that Bash will look for Nifskope.
+ ;  (defaults to C:\Program Files\NifTools\NifSkope\nifskope.exe). 
+ sNifskopePath=C:\Program Files\NifTools\NifSkope\nifskope.exe
+ 
++;--sFOMMPath is the path that Bash will look for Fallout Mod Manager.
++;  (defaults to C:\Program Files\GeMM\fomm.exe).
++sFOMMPath=C:\Program Files\GeMM\fomm.exe
++
+ ;==================================================;
+ ;===========3D Modeling Tool Launchers=============;
+ ;==================================================;

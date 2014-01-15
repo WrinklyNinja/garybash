@@ -1,0 +1,178 @@
+diff --git a/Mopy/bash/barb.py b/Mopy/bash/barb.py
+index 179f002..b51f29b 100644
+--- a/Mopy/bash/barb.py
++++ b/Mopy/bash/barb.py
+@@ -63,7 +63,7 @@ class BaseBackupSettings:
+         #end if
+         self.parent = parent
+         self.verDat = basher.settings['bash.version']
+-        self.verApp = basher.GetBashVersion()[1]
++        self.verApp = basher.settings['bash.readme'][1].split('.')[0]
+         self.files = {}
+         self.tmp = None
+ 
+@@ -109,23 +109,23 @@ class BackupSettings(BaseBackupSettings):
+     def __init__(self, parent=None, path=None, quit=False, backup_images=None):
+         BaseBackupSettings.__init__(self,parent,path,quit)
+         for path, name, tmpdir in (
+-              (dirs['mopy'],                      'bash.ini',             'Oblivion\\Mopy'),
+-              (dirs['mods'].join('Bash'),         'Table',                'Oblivion\\Data\\Bash'),
+-              (dirs['mods'].join('Docs'),         'Bash Readme Template', 'Oblivion\\Data\\Docs'),
+-              (dirs['mods'].join('Docs'),         'Bashed Lists',         'Oblivion\\Data\\Docs'),
+-              (dirs['mods'].join('Docs'),         'wtxt_sand_small.css',  'Oblivion\\Data\\Docs'),
+-              (dirs['mods'].join('Docs'),         'wtxt_teal.css',        'Oblivion\\Data\\Docs'),
+-              (dirs['modsBash'],                  'Table',                'Oblivion Mods\\Bash Mod Data'),
+-              (dirs['modsBash'].join('INI Data'), 'Table',                'Oblivion Mods\\Bash Mod Data\\INI Data'),
+-              (dirs['installers'].join('Bash'),   'Converters',           'Oblivion Mods\\Bash Installers\\Bash'),
+-              (dirs['installers'].join('Bash'),   'Installers',           'Oblivion Mods\\Bash Installers\\Bash'),
+-              (dirs['userApp'],                   'Profiles',             'LocalAppData\\Oblivion'),
+-              (dirs['userApp'],                   'bash config',          'LocalAppData\\Oblivion'),
+-              (dirs['saveBase'],                  'BashProfiles',         'My Games\\Oblivion'),
+-              (dirs['saveBase'],                  'BashSettings',         'My Games\\Oblivion'),
+-              (dirs['saveBase'],                  'Messages',             'My Games\\Oblivion'),
+-              (dirs['saveBase'],                  'ModeBase',             'My Games\\Oblivion'),
+-              (dirs['saveBase'],                  'People',               'My Games\\Oblivion'),
++              (dirs['mopy'],                      'Bash.ini',             'Fallout 3\\Mopy'),
++              (dirs['mods'].join('Bash'),         'Table',                'Fallout 3\\Data\\Bash'),
++              (dirs['mods'].join('Docs'),         'Bash Readme Template', 'Fallout 3\\Data\\Docs'),
++              (dirs['mods'].join('Docs'),         'Bashed Lists',         'Fallout 3\\Data\\Docs'),
++              (dirs['mods'].join('Docs'),         'wtxt_sand_small.css',  'Fallout 3\\Data\\Docs'),
++              (dirs['mods'].join('Docs'),         'wtxt_teal.css',        'Fallout 3\\Data\\Docs'),
++              (dirs['modsBash'],                  'Table',                'Fallout 3 Mods\\Bash Mod Data'),
++              (dirs['modsBash'].join('INI Data'), 'Table',                'Fallout 3 Mods\\Bash Mod Data\\INI Data'),
++              (dirs['installers'].join('Bash'),   'Converters',           'Fallout 3 Mods\\Bash Installers\\Bash'),
++              (dirs['installers'].join('Bash'),   'Installers',           'Fallout 3 Mods\\Bash Installers\\Bash'),
++              (dirs['userApp'],                   'Profiles',             'LocalAppData\\Fallout3'),
++              (dirs['userApp'],                   'bash config',          'LocalAppData\\Fallout3'),
++              (dirs['saveBase'],                  'BashProfiles',         'My Games\\Fallout3'),
++              (dirs['saveBase'],                  'BashSettings',         'My Games\\Fallout3'),
++              (dirs['saveBase'],                  'Messages',             'My Games\\Fallout3'),
++              (dirs['saveBase'],                  'ModeBase',             'My Games\\Fallout3'),
++              (dirs['saveBase'],                  'People',               'My Games\\Fallout3'),
+                 ):
+             tmpdir = GPath(tmpdir)
+             for ext in ('','.dat','.pkl','.html','.txt'): # hack so the above file list can be shorter, could include rogue files but not very likely
+@@ -138,9 +138,9 @@ class BackupSettings(BaseBackupSettings):
+ 
+         #backup all files in Mopy\Data, Data\Bash Patches and Data\INI Tweaks
+         for path, tmpdir in (
+-              (dirs['l10n'],                              'Oblivion\\Mopy\\bash\\l10n'),
+-              (dirs['mods'].join('Bash Patches'),         'Oblivion\\Data\\Bash Patches'),
+-              (dirs['mods'].join('INI Tweaks'),           'Oblivion\\Data\\INI Tweaks'),
++              (dirs['l10n'],                              'Fallout 3\\Mopy\\bash\\l10n'),
++              (dirs['mods'].join('Bash Patches'),         'Fallout 3\\Data\\Bash Patches'),
++              (dirs['mods'].join('INI Tweaks'),           'Fallout 3\\Data\\INI Tweaks'),
+                 ):
+             tmpdir = GPath(tmpdir)
+             for name in path.list():
+@@ -149,7 +149,7 @@ class BackupSettings(BaseBackupSettings):
+         
+         #backup image files if told to
+         if backup_images == 1: #changed images only
+-            tmpdir = GPath('Oblivion\\Mopy\\bash\\images')
++            tmpdir = GPath('Fallout 3\\Mopy\\bash\\images')
+             path = dirs['images']
+             for name in path.list():
+                 fullname = path.join(name)
+@@ -161,14 +161,14 @@ class BackupSettings(BaseBackupSettings):
+                     if changed and not name.s.lower() == 'thumbs.db':
+                         self.files[tmpdir.join(name)] = fullname
+         elif backup_images == 2: #all images
+-            tmpdir = GPath('Oblivion\\Mopy\\bash\\images')
++            tmpdir = GPath('Fallout 3\\Mopy\\bash\\images')
+             path = dirs['images']
+             for name in path.list():
+                 if path.join(name).isfile() and not name.s.lower() == 'thumbs.db':
+                     self.files[tmpdir.join(name)] = path.join(name)
+                     
+         #backup save profile settings
+-        savedir = GPath('My Games\\Oblivion')
++        savedir = GPath('My Games\\Fallout3')
+         profiles = [''] + [x for x in dirs['saveBase'].join('Saves').list() if dirs['saveBase'].join('Saves',x).isdir() and str(x).lower() != 'bash']
+         for profile in profiles:
+             tpath = savedir.join('Saves',profile,'plugins.txt')
+@@ -197,7 +197,7 @@ class BackupSettings(BaseBackupSettings):
+         # dump the version info and file listing
+         out = self.tmp.join('backup.dat').open('wb')
+         cPickle.dump(self.verDat, out, -1) #data version, if this doesn't match the installed data version, do not allow restore
+-        cPickle.dump(self.verApp, out, -1) #app version, if this doesn't match the installer app version, warn the use on restore
++        cPickle.dump(self.verApp, out, -1) #app version, if this doesn't match the installer app version, warn the user on restore
+         out.close()
+ 
+         # create the backup archive
+@@ -215,7 +215,7 @@ class BackupSettings(BaseBackupSettings):
+         #returns False if user cancels
+         if self.archive == None or self.dir.join(self.archive).exists():
+             dt = datetime.datetime.now()
+-            file = 'Backup Bash Settings v%s (%s).7z' % (self.verDat,dt.strftime('%d-%m-%Y %H%M.%S'))
++            file = 'Backup Bash Settings v%s (%s).7z' % (self.verApp,dt.strftime('%d-%m-%Y %H%M.%S'))
+             if not self.quit:
+                 path = askSave(self.parent,_('Backup Bash Settings'),self.dir,file,'*.7z')
+                 if not path: return False
+@@ -303,40 +303,40 @@ class RestoreSettings(BaseBackupSettings):
+         deprint('RESTORE BASH SETTINGS: ' + self.dir.join(self.archive).s)
+ 
+         # reinitialize bosh.dirs using the backup copy of bash.ini if it exists
+-        tmpBash = self.tmp.join('Oblivion\\Mopy\\bash.ini')
++        tmpBash = self.tmp.join('Fallout 3\\Mopy\\bash.ini')
+         opts, args = bash.opts, bash.extra
+ 
+         bash.SetUserPath(tmpBash.s,opts.userPath)
+ 
+         bashIni = bash.GetBashIni(tmpBash.s)
+-        bosh.initBosh(opts.personalPath,opts.localAppDataPath,opts.oblivionPath)
++        bosh.initBosh(opts.personalPath,opts.localAppDataPath,opts.falloutPath)
+ 
+         # restore all the settings files
+         restore_paths = (
+-                (dirs['mopy'],                              'Oblivion\\Mopy'),
+-                (dirs['mods'].join('Bash'),                 'Oblivion\\Data\\Bash'),
+-                (dirs['mods'].join('Bash Patches'),         'Oblivion\\Data\\Bash Patches'),
+-                (dirs['mods'].join('Docs'),                 'Oblivion\\Data\\Docs'),
+-                (dirs['mods'].join('INI Tweaks'),           'Oblivion\\Data\\INI Tweaks'),
+-                (dirs['modsBash'],                          'Oblivion Mods\\Bash Mod Data'),
+-                (dirs['modsBash'].join('INI Data'),         'Oblivion Mods\\Bash Mod Data\\INI Data'),
+-                (dirs['installers'].join('Bash'),           'Oblivion Mods\\Bash Installers\\Bash'),
+-                (dirs['userApp'],                           'LocalAppData\\Oblivion'),
+-                (dirs['saveBase'],                          'My Games\\Oblivion'),
++                (dirs['mopy'],                              'Fallout 3\\Mopy'),
++                (dirs['mods'].join('Bash'),                 'Fallout 3\\Data\\Bash'),
++                (dirs['mods'].join('Bash Patches'),         'Fallout 3\\Data\\Bash Patches'),
++                (dirs['mods'].join('Docs'),                 'Fallout 3\\Data\\Docs'),
++                (dirs['mods'].join('INI Tweaks'),           'Fallout 3\\Data\\INI Tweaks'),
++                (dirs['modsBash'],                          'Fallout 3 Mods\\Bash Mod Data'),
++                (dirs['modsBash'].join('INI Data'),         'Fallout 3 Mods\\Bash Mod Data\\INI Data'),
++                (dirs['installers'].join('Bash'),           'Fallout 3 Mods\\Bash Installers\\Bash'),
++                (dirs['userApp'],                           'LocalAppData\\Fallout3'),
++                (dirs['saveBase'],                          'My Games\\Fallout3'),
+                 )
+-        if 293 >= self.verApp:
++        if 14 >= self.verApp:
+             # restore from old data paths
+             restore_paths += (
+-                (dirs['l10n'],                              'Oblivion\\Data'),)
++                (dirs['l10n'],                              'Fallout 3\\Data'),)
+             if self.restore_images:
+                 restore_paths += (
+-                    (dirs['images'],                        'Oblivion\\Mopy\\images'),)
++                    (dirs['images'],                        'Fallout 3\\Mopy\\images'),)
+         else:
+             restore_paths += (
+-                (dirs['l10n'],                              'Oblivion\\bash\\l10n'),)
++                (dirs['l10n'],                              'Fallout 3\\bash\\l10n'),)
+             if self.restore_images:
+                 restore_paths += (
+-                    (dirs['images'],                        'Oblivion\\Mopy\\bash\\images'),)
++                    (dirs['images'],                        'Fallout 3\\Mopy\\bash\\images'),)
+         for fpath, tpath in restore_paths:
+             path = self.tmp.join(tpath)
+             if path.exists():
+@@ -346,7 +346,7 @@ class RestoreSettings(BaseBackupSettings):
+                         path.join(name).copyTo(fpath.join(name))
+ 
+         #restore savegame profile settings
+-        tpath = GPath('My Games\\Oblivion\\Saves')
++        tpath = GPath('My Games\\Fallout3\\Saves')
+         fpath = dirs['saveBase'].join('Saves')
+         path = self.tmp.join(tpath)
+         if path.exists():

@@ -1,0 +1,240 @@
+diff --git a/Mopy/bash/bish.py b/Mopy/bash/bish.py
+index abac23b..acb219f 100644
+--- a/Mopy/bash/bish.py
++++ b/Mopy/bash/bish.py
+@@ -21,7 +21,7 @@
+ #
+ # =============================================================================
+ 
+-"""This module provides a command line interface for working with Oblivion files
++"""This module provides a command line interface for working with Fallout3 files
+ and environment. Functions are defined here and added to the callables
+ singleton. Callables.main() is then used to parse command line arguments.
+ 
+@@ -35,7 +35,7 @@ Practice:
+ 
+ Rational Names:
+     Rational names is a mod that "Rationalizes" names of many objects in the
+-    Oblivion world. Many of those names were generated here by functions working
++    Fallout 3 world. Many of those names were generated here by functions working
+     on the basis of the eid or pre-existing name. Naturally these tend to be
+     use-once functions, but they also tended to be modified and then used again.
+ """
+@@ -82,10 +82,10 @@ def init(initLevel):
+     #--Settings
+     bosh.initBosh()
+     bosh.initSettings(readOnly=True)
+-    bosh.oblivionIni = bosh.OblivionIni()
++    bosh.falloutIni = bosh.FalloutIni()
+     #--MwIniFile (initLevel >= 1)
+     if initLevel < 1: return
+-    bosh.oblivionIni = bosh.OblivionIni()
++    bosh.falloutIni = bosh.FalloutIni()
+     #--ModInfos (initLevel >= 2)
+     if initLevel < 2: return
+     bosh.modInfos = bosh.ModInfos()
+@@ -210,7 +210,7 @@ def convertFace(fileName,eid,fromEid,toEid):
+     """Converts faces from one race to another."""
+     init(3)
+     #--Race faces
+-    raceInfo = bosh.modInfos[GPath('Oblivion.esm')]
++    raceInfo = bosh.modInfos[GPath('Fallout3.esm')]
+     raceFaces = bosh.PCFaces.mod_getRaceFaces(raceInfo)
+     fromRace = raceFaces.get(fromEid, bosh.PCFaces.PCFace())
+     toRace   = raceFaces.get(toEid,   bosh.PCFaces.PCFace())
+@@ -232,7 +232,7 @@ def convertFace(fileName,eid,fromEid,toEid):
+ def importRacialEyesHair(srcMod,srcRaceEid,dstMod,dstRaceEid):
+     """Copies eyes and hair from one race to another."""
+     init(3)
+-    if dstMod.lower() == 'oblivion.esm':
++    if dstMod.lower() == 'fallout3.esm':
+         raise "You don't REALLY want to overwrite Oblvion.esm, do you?"
+     srcFactory = bosh.LoadFactory(False,bosh.MreRace)
+     dstFactory = bosh.LoadFactory(True,bosh.MreRace)
+@@ -476,7 +476,7 @@ def perfTest():
+     total = 0.0
+     from timeit import Timer
+     for testClasses in ['bosh.MreClmt','bosh.MreCsty','bosh.MreIdle','bosh.MreLtex','bosh.MreRegn','bosh.MreSbsp']:
+-        test = Timer('testClasses = (%s,);loadFactory = bosh.LoadFactory(False,*testClasses);modInfo = bosh.modInfos[GPath("Oblivion.esm")];modFile = bosh.ModFile(modInfo,loadFactory);modFile.load(True)' % testClasses, "import bosh;from bolt import GPath").timeit(1)
++        test = Timer('testClasses = (%s,);loadFactory = bosh.LoadFactory(False,*testClasses);modInfo = bosh.modInfos[GPath("Fallout3.esm")];modFile = bosh.ModFile(modInfo,loadFactory);modFile.load(True)' % testClasses, "import bosh;from bolt import GPath").timeit(1)
+         print testClasses, ":", test
+         total += test
+     print "total:", total
+@@ -484,65 +484,15 @@ def perfTest():
+     test = 0.0
+     total = 0.0
+     for testClasses in ['bosh.MreAchr,bosh.MreCell,bosh.MreWrld','bosh.MreAcre,bosh.MreCell,bosh.MreWrld','bosh.MreActi','bosh.MreAlch','bosh.MreAmmo','bosh.MreAnio','bosh.MreAppa','bosh.MreArmo','bosh.MreBook','bosh.MreBsgn','bosh.MreCell,bosh.MreWrld','bosh.MreClas','bosh.MreClot','bosh.MreCont','bosh.MreCrea','bosh.MreDial,bosh.MreInfo','bosh.MreDoor','bosh.MreEfsh','bosh.MreEnch','bosh.MreEyes','bosh.MreFact','bosh.MreFlor','bosh.MreFurn','bosh.MreGlob','bosh.MreGmst','bosh.MreGras','bosh.MreHair','bosh.MreIngr','bosh.MreKeym','bosh.MreLigh','bosh.MreLscr','bosh.MreLvlc','bosh.MreLvli','bosh.MreLvsp','bosh.MreMgef','bosh.MreMisc','bosh.MreNpc','bosh.MrePack','bosh.MreQust','bosh.MreRace','bosh.MreRefr,bosh.MreCell,bosh.MreWrld','bosh.MreRoad,bosh.MreCell,bosh.MreWrld','bosh.MreScpt','bosh.MreSgst','bosh.MreSkil','bosh.MreSlgm','bosh.MreSoun','bosh.MreSpel','bosh.MreStat','bosh.MreTes4','bosh.MreTree','bosh.MreWatr','bosh.MreWeap','bosh.MreWthr']:#,'"LAND"', '"PGRD"']:
+-        test = Timer('testClasses = (%s,);loadFactory = bosh.LoadFactory(False,*testClasses);modInfo = bosh.modInfos[GPath("Oblivion.esm")];modFile = bosh.ModFile(modInfo,loadFactory);modFile.load(True)' % testClasses, "import bosh;from bolt import GPath").timeit(1)
++        test = Timer('testClasses = (%s,);loadFactory = bosh.LoadFactory(False,*testClasses);modInfo = bosh.modInfos[GPath("Fallout3.esm")];modFile = bosh.ModFile(modInfo,loadFactory);modFile.load(True)' % testClasses, "import bosh;from bolt import GPath").timeit(1)
+         print testClasses, ":", test
+         total += test
+     print "total:", total
+-    ##print Timer('testClasses = (bosh.MreAchr,bosh.MreAcre,bosh.MreActi,bosh.MreAlch,bosh.MreAmmo,bosh.MreAnio,bosh.MreAppa,bosh.MreArmo,bosh.MreBook,bosh.MreBsgn,bosh.MreCell,bosh.MreClas,bosh.MreClmt,bosh.MreClot,bosh.MreCont,bosh.MreCrea,bosh.MreCsty,bosh.MreDial,bosh.MreDoor,bosh.MreEfsh,bosh.MreEnch,bosh.MreEyes,bosh.MreFact,bosh.MreFlor,bosh.MreFurn,bosh.MreGlob,bosh.MreGmst,bosh.MreGras,bosh.MreHair,bosh.MreIdle,bosh.MreInfo,bosh.MreIngr,bosh.MreKeym,bosh.MreLigh,bosh.MreLscr,bosh.MreLtex,bosh.MreLvlc,bosh.MreLvli,bosh.MreLvsp,bosh.MreMgef,bosh.MreMisc,bosh.MreNpc ,bosh.MrePack,bosh.MreQust,bosh.MreRace,bosh.MreRefr,bosh.MreRegn,bosh.MreRoad,bosh.MreSbsp,bosh.MreScpt,bosh.MreSgst,bosh.MreSkil,bosh.MreSlgm,bosh.MreSoun,bosh.MreSpel,bosh.MreStat,bosh.MreTes4,bosh.MreTree,bosh.MreWatr,bosh.MreWeap,bosh.MreWrld,bosh.MreWthr,"LAND", "PGRD");loadFactory = bosh.LoadFactory(False,*testClasses);modInfo = bosh.modInfos[GPath("Oblivion.esm")];modFile = bosh.ModFile(modInfo,loadFactory);modFile.load(True)', "import bosh;from bolt import GPath").timeit(1)
++    ##print Timer('testClasses = (bosh.MreAchr,bosh.MreAcre,bosh.MreActi,bosh.MreAlch,bosh.MreAmmo,bosh.MreAnio,bosh.MreAppa,bosh.MreArmo,bosh.MreBook,bosh.MreBsgn,bosh.MreCell,bosh.MreClas,bosh.MreClmt,bosh.MreClot,bosh.MreCont,bosh.MreCrea,bosh.MreCsty,bosh.MreDial,bosh.MreDoor,bosh.MreEfsh,bosh.MreEnch,bosh.MreEyes,bosh.MreFact,bosh.MreFlor,bosh.MreFurn,bosh.MreGlob,bosh.MreGmst,bosh.MreGras,bosh.MreHair,bosh.MreIdle,bosh.MreInfo,bosh.MreIngr,bosh.MreKeym,bosh.MreLigh,bosh.MreLscr,bosh.MreLtex,bosh.MreLvlc,bosh.MreLvli,bosh.MreLvsp,bosh.MreMgef,bosh.MreMisc,bosh.MreNpc ,bosh.MrePack,bosh.MreQust,bosh.MreRace,bosh.MreRefr,bosh.MreRegn,bosh.MreRoad,bosh.MreSbsp,bosh.MreScpt,bosh.MreSgst,bosh.MreSkil,bosh.MreSlgm,bosh.MreSoun,bosh.MreSpel,bosh.MreStat,bosh.MreTes4,bosh.MreTree,bosh.MreWatr,bosh.MreWeap,bosh.MreWrld,bosh.MreWthr,"LAND", "PGRD");loadFactory = bosh.LoadFactory(False,*testClasses);modInfo = bosh.modInfos[GPath("Fallout3.esm")];modFile = bosh.ModFile(modInfo,loadFactory);modFile.load(True)', "import bosh;from bolt import GPath").timeit(1)
+     sys.exit()
+ 
+ #------------------------------------------------------------------------------
+ @mainfunc
+-def makeOOO_NoGuildOwnership():
+-    bosh.initBosh()
+-    Current = bosh.Collection(ModsPath=bosh.dirs['mods'].s)
+-    modFile = Current.addMod("Oscuro's_Oblivion_Overhaul.esp")
+-    destFile = Current.addMod("OOO-No_Guild_Ownership.esp", CreateIfNotExist=True)
+-    Current.minimalLoad(LoadMasters=True)
+-    guildCells = set([0x0002C178,0x00003AAC,0x00030534,0x0000A2BC,0x00027D58,
+-                      0x0003E0E4,0x00086588,0x0002C179,0x000855AD,0x0002CA2F,
+-                      0x0002FF4F,0x0002CDBD,0x00030535,0x0002D155,0x00000885,
+-                      0x0003E0E5,0x0002C17A,0x0004F8C8,0x00032F02,0x000235DE,
+-                      0x00000ADE,0x00000D9A,0x00006917,0x000855A5,0x00003AAF,
+-                      0x000260CD,0x000855A6,0x0002D068,0x0001C92A,0x00051B8E,
+-                      0x0002C172,0x0002D626,0x0003ABDD,0x00051B8F,0x0001C93F,
+-                      0x0002E545,0x0003ABDE,0x000855A8,0x000097B4,0x00051B90,
+-                      0x00033370,0x0002C174,0x0000691B,0x000855A9,0x000097B5,
+-                      0x0000A2B9,0x000302ED,0x0002C175,0x0008440C,0x00049CF8,
+-                      0x000097B6,0x0004EA5A,0x0002C176,0x0008440D,0x00049CF9,
+-                      0x00027D57,0x000308CB,0x00030425,0x0002CFD7,0x0003E0E3,
+-                      0x0002C177])
+-    guildFactions = set([0x00022296,0x0002228F])
+-    changed = {}
+-
+-    for record in modFile.CELL:
+-        if record.fid in guildCells:
+-            print record.eid
+-            for refr in record.REFR:
+-                if refr.owner in guildFactions:
+-                    base = Current.LookupRecords(refr.base)
+-                    try:
+-                        base = base[0]
+-                    except:
+-                        continue
+-                    if base._Type in bosh.pickupables:
+-                        if base._Type == 'LIGH':
+-                            if not base.IsCanTake: continue
+-                        if base._Type == 'BOOK':
+-                            if base.IsFixed: continue
+-                        if destFile.HasRecord(record.fid) is None:
+-                            #Copy the winning version of the parent over if it isn't in the patch
+-                            record.CopyAsOverride(destFile)
+-                        override = refr.CopyAsOverride(destFile)
+-                        if override:
+-                            override.owner = None
+-                            override.rank = None
+-                            override.globalVariable = None
+-                            changed[base._Type] = changed.get(base._Type,0) + 1
+-    print changed
+-    if sum(changed.values()): destFile.safeCloseSave()
+-    del Current
+-@mainfunc
+ def bsaReport(fileName,printAll='False'):
+     printAll = eval(printAll)
+     init(2)
+@@ -604,7 +554,7 @@ def csFunctions(fileName="CS Functions.txt"):
+     print 'Read',fileName
+     #--Page writer
+     def groupLink(group):
+-        group = re.sub('OBSE','[[:Category:Oblivion_Script_Extender|OBSE]]',group)
++        group = re.sub('FOSE','[[:Category:Fallout3_Script_Extender|FOSE]]',group)
+         group = re.sub('Pluggy','[[:Category:Pluggy|]]',group)
+         group = re.sub('TSFC','[[:Category:TSFC|]]',group)
+         return group
+@@ -643,21 +593,21 @@ def csFunctions(fileName="CS Functions.txt"):
+         out.close()
+         print 'Wrote', fileName
+     #--Dump pages
+-    dumpPage('CS All.txt',records,None,
+-        "[[Category:Scripting]]\nThis page lists all scripting functions including OBSE and OBSE plugin functions.")
+-    dumpPage('CS CS.txt',records,'CS',
+-        "[[Category:Scripting]]\nThis page lists all native CS scripting functions. For a more comprehensive list (including OBSE and OBSE plugin functions), see [[List of Functions]].")
+-    dumpPage('CS OBSE.txt',records,'OBSE',
+-        "[[Category:Scripting]][[Category:Oblivion Script Extender]]\nThis page lists all functions for [[:Category:Oblivion_Script_Extender|]]. For a more comprehensive list (including native CS and OBSE plugin functions), see [[List of Functions]].")
+-    dumpPage('CS Pluggy.txt',records,'Pluggy',
+-        "[[Category:Scripting]][[Category:Pluggy]]\nThis page lists all functions for [[:Category:Pluggy|]]. For a more comprehesive list of functions (including native CS and other OBSE related functions), see [[List of Functions]].")
+-    dumpPage('CS TSFC.txt',records,'TSFC',
+-        "[[Category:Scripting]][[Category:TSFC]]\nThis page lists all functions for [[:Category:TSFC|]]. For a more comprehesive list of functions (including native CS and other OBSE related functions), see [[List of Functions]].")
++    dumpPage('GECK All.txt',records,None,
++        "[[Category:Scripting]]\nThis page lists all scripting functions including FOSE and FOSE plugin functions.")
++    dumpPage('GECK GECK.txt',records,'GECK',
++        "[[Category:Scripting]]\nThis page lists all native GECK scripting functions. For a more comprehensive list (including FOSE and FOSE plugin functions), see [[List of Functions]].")
++    dumpPage('GECK FOSE.txt',records,'FOSE',
++        "[[Category:Scripting]][[Category:Fallout 3 Script Extender]]\nThis page lists all functions for [[:Category:Fallout3_Script_Extender|]]. For a more comprehensive list (including native GECK and FOSE plugin functions), see [[List of Functions]].")
++    dumpPage('GECK Pluggy.txt',records,'Pluggy',
++        "[[Category:Scripting]][[Category:Pluggy]]\nThis page lists all functions for [[:Category:Pluggy|]]. For a more comprehesive list of functions (including native GECK and other FOSE related functions), see [[List of Functions]].")
++    dumpPage('GECK TSFC.txt',records,'TSFC',
++        "[[Category:Scripting]][[Category:TSFC]]\nThis page lists all functions for [[:Category:TSFC|]]. For a more comprehesive list of functions (including native GECK and other FOSE related functions), see [[List of Functions]].")
+ 
+ #------------------------------------------------------------------------------
+ @mainfunc
+ def getIds(fileName=None):
+-    """Gets fids and returns as a set. Primarily for analysis of Oblivion.esm.
++    """Gets fids and returns as a set. Primarily for analysis of Fallout3.esm.
+     NOTE: Does a low level read and hence can read fids of ALL records in all
+     groups. Including CELLs WRLDs, etc."""
+     def getRecordReader(ins,flags,size):
+@@ -709,26 +659,27 @@ def getIds(fileName=None):
+ #------------------------------------------------------------------------------
+ @mainfunc
+ def gmstIds(fileName=None):
+-    """Updates map of GMST eids to fids in bash\db\Oblivion_ids.pkl, based either
++    """Updates map of GMST eids to fids in bash\db\Fallout3_ids.pkl, based either
+     on a list of new eids or the gmsts in the specified mod file. Updated pkl file
+     is dropped in Mopy directory."""
+     #--Data base
+     import cPickle
+-    fids = cPickle.load(GPath(r'bash\db\Oblivion_ids.pkl').open('r'))['GMST']
++    fids = cPickle.load(GPath(r'bash\db\Fallout3_ids.pkl').open('r'))['GMST']
+     maxId = max(fids.values())
+     maxId = max(maxId,0xf12345)
+     maxOld = maxId
+     print 'maxId',hex(maxId)
+     #--Eid list? - if the GMST has a 00000000 eid when looking at it in the cs with nothing 
+-    # but oblivion.esm loaded you need to add the gmst to this list, rebuild the pickle and overwrite the old one.
+-    for eid in ['iTrainingSkills','fRepairCostMult','fCrimeGoldSteal','iAllowAlchemyDuringCombat','iNumberActorsAllowedToFollowPlayer',
+-                'iAllowRepairDuringCombat','iMaxPlayerSummonedCreatures','iAICombatMaxAllySummonCount','iAINumberActorsComplexScene',
+-                'fHostileActorExteriorDistance','fHostileActorInteriorDistance','iVampirismAgeOffset','iRemoveExcessDeadCount',
+-                'iRemoveExcessDeadTotalActorCount','iRemoveExcessDeadComplexTotalActorCount','iRemoveExcessDeadComplexCount',
+-                'fRemoveExcessDeadTime','fRemoveExcessComplexDeadTime','iInventoryAskQuantityAt','iCrimeGoldPickpocket',
+-                'iCrimeGoldTresspass','sBloodTextureDefault','sBloodTextureExtra1','sBloodTextureExtra2','sBloodParticleDefault',
+-                'sBloodParticleExtra1','sBloodParticleExtra2','iAllyHitAllowed','sAutoSaving','sFloraFailureMessage',
+-                'sFloraSuccesssMessage','sQuickSaving','sFastTravelHorseatGate','sLoadingArea','sQuickLoading','sNoCharge']:
++	# but fallout3.esm loaded you need to add the gmst to this list, rebuild the pickle and overwrite the old one.
++    for eid in ['fPlayerDeathReloadTime','iMapMarkerVisibleDistance','fVanityModeWheelMax','fChase3rdPersonZUnitsPerSecond',
++                'fAutoAimMaxDegreesMiss','iHoursToRespawnCell','fEssentialDeathTime','fJumpHeightMin','fPlayerPipBoyLightTimer',
++                'iAINumberActorsComplexScene','iHackingMaxWords','fGunShellLifetime','fGunShellCameraDistance','fGunDecalCameraDistance',
++                'iDebrisMaxCount','iHackingDumpRate','iHackingInputRate','iHackingOutputRate','iHackingFlashOffDuration',
++                'iHackingFlashOnDuration','iComputersDisplayRateMenus','iComputersDisplayRateNotes','iInventoryAskQuantityAt',
++                'iNumberActorsInCombatPlayer','iNumberActorsAllowedToFollowPlayer','iRemoveExcessDeadCount','iRemoveExcessDeadTotalActorCount',
++                'iRemoveExcessDeadComplexTotalActorCount','iRemoveExcessDeadComplexCount', 'fRemoveExcessDeadTime','fRemoveExcessComplexDeadTime',
++                'iLevItemLevelDifferenceMax','fMoveWeightMax',
++                ]:
+         if eid not in fids:
+             maxId += 1
+             fids[eid] = maxId
+@@ -750,8 +701,8 @@ def gmstIds(fileName=None):
+     #--Changes?
+     if maxId > maxOld:
+         outData = {'GMST':fids}
+-        cPickle.dump(outData,GPath(r'Oblivion_ids.pkl').open('w'))
+-        print "%d new gmst ids written to Oblivion_ids.pkl" % ((maxId - maxOld),)
++        cPickle.dump(outData,GPath(r'Fallout3_ids.pkl').open('w'))
++        print "%d news gmst ids written to Fallout3_ids.pkl" % ((maxId - maxOld),)
+ 
+ #------------------------------------------------------------------------------
+ @mainfunc
+@@ -838,7 +789,7 @@ def findSaveRecord(srcName,fid):
+ 
+ #------------------------------------------------------------------------------
+ @mainfunc
+-def renameArchives(root=r'C:\Program Files\Bethesda Softworks\Oblivion\Downloads'):
++def renameArchives(root=r'C:\Program Files\Bethesda Softworks\Fallout 3\Downloads'):
+     """Renames TesSource archive files to sort a little better.
+     E.g., change 12345-2.23-My Wicked Mod-TESSource.zip to My Wicked Mod 2.23.zip."""
+     reTesSource = re.compile(r'^\d{4}-(\d[^-]*)-(.+)-TESSource.(zip|rar|7z|ace|exe)$',re.I)
+@@ -935,7 +886,7 @@ def parseDials(srcName=None,dstName='Wrye Test.esp'):
+     dstFile.askSave(True)
+ 
+ @mainfunc
+-def parseRecords(fileName='Oblivion.esm'):
++def parseRecords(fileName='Fallout3.esm'):
+     import psyco
+     psyco.full()
+     init(3)
