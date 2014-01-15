@@ -6692,6 +6692,9 @@ class ImportScriptContents(bosh.ImportScriptContents,ListPatcher):pass
 
 class DestructiblePatcher(bosh.DestructiblePatcher,ListPatcher): pass
 ##class CBash_DestructiblePatcher(bosh.DestructiblePatcher,ListPatcher): pass
+ 
+class WeaponModsPatcher(bosh.WeaponModsPatcher,ListPatcher): pass
+##class CBash_WeaponModsPatcher(bosh.WeaponModsPatcher,ListPatcher): pass
 
 # Patchers 30 ------------------------------------------------------------------
 class AssortedTweaker(bosh.AssortedTweaker,TweakPatcher): pass
@@ -6775,6 +6778,7 @@ PatchDialog.patchers.extend((
     ImportScriptContents(),
 ##    ImportActorsSpells(),
     DestructiblePatcher(),
+    WeaponModsPatcher(),
     ListsMerger(),
     FidListsMerger(),
 ##    MFactMarker(),
@@ -14516,9 +14520,15 @@ def InitStatusBar():
             _("Launch GECK"),
             _("Launch GECK + FOSE"),
             '-editor'))
+    BashStatusBar.buttons.append( #FNV4GB
+        App_Button(
+            bosh.dirs['app'].join('fnv4gb.exe'),
+            Image(GPath(bosh.dirs['images'].join('fnv4gb'+bosh.inisettings['IconSize']+'.png'))),
+            _("Launch FNV4GB")))
     BashStatusBar.buttons.append( #FOMM
         App_Button(
             (bosh.tooldirs['FOMMPath'],'-game Fallout3'),
+            # (bosh.tooldirs['FOMMPath'],'-game FalloutNV'),  # For FNV
             Image(GPath(bosh.dirs['images'].join('fomm'+bosh.inisettings['IconSize']+'.png'))),
             _("Launch FOMM")))
     BashStatusBar.buttons.append( #ISOBL
@@ -14599,6 +14609,7 @@ def InitStatusBar():
     BashStatusBar.buttons.append( #(TES4|FO3|FNV)Edit
         App_Tes4View(
              (bosh.tooldirs['FO3EditPath'],'-FO3 -edit'),
+             # (bosh.tooldirs['FO3EditPath'],'-FNV -edit'),  # For FNV.
              Image(GPath(bosh.dirs['images'].join('fo3edit'+bosh.inisettings['IconSize']+'.png'))),
             _("Launch FO3Edit")))
     BashStatusBar.buttons.append( #MasterUpdate
@@ -15214,7 +15225,7 @@ def InitModLinks():
     if True: #--Versions
         versionsMenu = MenuLink("Fallout3.esm")
         versionsMenu.links.append(Mods_FalloutVersion('1.0'))
-        versionsMenu.links.append(Mods_FalloutVersion('1.1'))
+        versionsMenu.links.append(Mods_FalloutVersion('1.1'))  #FO3 only
         versionsMenu.links.append(Mods_FalloutVersion('1.4'))
         ModList.mainMenu.append(versionsMenu)
     #--Columns ----------------------------------
@@ -15366,7 +15377,7 @@ def InitSaveLinks():
     if True: #--Versions
         versionsMenu = MenuLink("Fallout3.esm")
         versionsMenu.links.append(Mods_FalloutVersion('1.0',True))
-        versionsMenu.links.append(Mods_FalloutVersion('1.1',True))
+        versionsMenu.links.append(Mods_FalloutVersion('1.1',True))  #FO3 onl
         versionsMenu.links.append(Mods_FalloutVersion('1.4',True))
         SaveList.mainMenu.append(versionsMenu)
     if True: #--Save Profiles
