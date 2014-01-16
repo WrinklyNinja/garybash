@@ -1333,3 +1333,26 @@ conditionFunctionData = ( #--0: no param; 1: int param; 2: formid param
 class esp:
     #--Valid ESM/ESP header versions
     validHeaderVersions = (0.85)
+    
+def init():
+    # Due to a bug with py2exe, 'reload' doesn't function properly.  Instead of
+    # re-executing all lines within the module, it acts like another 'import'
+    # statement - in otherwords, nothing happens.  This means any lines that
+    # affect outside modules must do so within this function, which will be
+    # called instead of 'reload'
+    brec.ModReader.recHeader = RecordHeader
+    
+    MreRecord.type_class = dict((x.classType,x) for x in (
+        MreAchr, MreAcre, MreActi, MreAlch, MreAmmo, MreAnio, MreAppa, MreArmo, MreBook, MreBsgn,
+        MreCell, MreClas, MreClot, MreCont, MreCrea, MreDoor, MreEfsh, MreEnch, MreEyes, MreFact,
+        MreFlor, MreFurn, MreGlob, MreGmst, MreGras, MreHair, MreIngr, MreKeym, MreLigh, MreLscr,
+        MreLvlc, MreLvli, MreLvsp, MreMgef, MreMisc, MreNpc,  MrePack, MreQust, MreRace, MreRefr,
+        MreRoad, MreScpt, MreSgst, MreSkil, MreSlgm, MreSoun, MreSpel, MreStat, MreTree, MreTes4,
+        MreWatr, MreWeap, MreWrld, MreWthr, MreClmt, MreCsty, MreIdle, MreLtex, MreRegn, MreSbsp,
+        MreDial, MreInfo, MreTxst, MreMicn, MreFlst, MrePerk, MreExpl, MreIpct, MreIpds, MreProj,
+        MreLvln, MreDebr, MreImad, MreMstt, MreNote, MreTerm, MreAvif, MreEczn, MreBptd, MreVtyp,
+        MreMusc, MrePwat, MreAspc, MreHdpt, MreDobj, MreIdlm, MreArma, MreTact, MreNavm
+    ))
+    
+    MreRecord.simpleTypes = (set(MreRecord.type_class) -
+        set(('TES4','ACHR','ACRE','REFR','CELL','PGRD','ROAD','LAND','WRLD','INFO','DIAL','PGRE','NAVM')))
