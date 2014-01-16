@@ -69,34 +69,6 @@ index a5000f0..c8a38ec 100644
              )
          for bsaFile,mtime in bsaTimes:
              dirs['mods'].join(bsaFile).mtime = mtime
-@@ -8825,18 +9399,22 @@ class IniFile:
- def BestIniFile(path):
-     if path.csbody == 'fallout':
-         return falloutIni
-+    elif path.csbody == 'fallout_default':
-+        return falloutDefaultIni
-+    elif path.csbody == 'falloutprefs':
-+        return falloutPrefsIni
-     ini = IniFile(path)
-     ini_settings = ini.getSettings()
-     if len(ini_settings) > 0:
-         return ini
--    fose = FOSEIniFile(path)
--    ini_settings = fose.getSettings()
-+    nvse = NVSEIniFile(path)
-+    ini_settings = nvse.getSettings()
-     if len(ini_settings) > 0:
--        return fose
-+        return nvse
-     return ini
- 
--class FOSEIniFile(IniFile):
--    """FOSE Configuration ini file.  Minimal support provided, only can
-+class NVSEIniFile(IniFile):
-+    """NVSE Configuration ini file.  Minimal support provided, only can
-     handle 'set' and 'setGS' statements."""
-     reSet     = re.compile(r'\s*set\s+(.+?)\s+to\s+(.*)', re.I)
-     reSetGS   = re.compile(r'\s*setGS\s+(.+?)\s+(.*)', re.I)
 @@ -9012,7 +9590,7 @@ class FOSEIniFile(IniFile):
  #--------------------------------------------------------------------------------
  class FalloutIni(IniFile):
