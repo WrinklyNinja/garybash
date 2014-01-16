@@ -680,7 +680,7 @@ raceHairFemale = {
 #--Plugin format stuff
 class esp:
     #--Valid ESM/ESP header versions
-    validHeaderVersions = (0.85)
+    validHeaderVersions = (0.85,0.94)
     
     #--Top types in Fallout3 order.
     topTypes = ['GMST', 'TXST', 'MICN', 'GLOB', 'CLAS', 'FACT', 'HDPT', 'HAIR', 'EYES',
