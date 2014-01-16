@@ -430,6 +430,101 @@ topTypes = ['GMST', 'TXST', 'MICN', 'GLOB', 'CLAS', 'FACT', 'HDPT', 'HAIR', 'EYE
 # ['SLGM', 'BSGN', 'FLOR', 'SGST', 'CLOT', 'SBSP', 'SKIL', 'LVSP', 'APPA']
 
 
+
+    
+namesTypes = set((
+        'ALCH', 'AMMO', 'APPA', 'ARMO', 'BOOK', 'CLAS', 'CLOT', 'CONT', 'CREA', 'DOOR',
+        'EYES', 'FACT', 'FLOR', 'HAIR', 'INGR', 'KEYM', 'LIGH', 'MISC', 'NOTE', 'NPC_',
+        'RACE', 'SPEL', 'TERM', 'WEAP', 'ACTI', 'TACT',
+        'CMNY', 'CCRD', 'IMOD', 'REPU', 'RCPE', 'RCCT', 'CHIP', 'CSNO'))
+
+        
+statsTypes = {
+        'ALCH':('eid', 'weight', 'value'),
+        'AMMO':('eid', 'weight', 'value', 'speed', 'clipRounds','projPerShot'),
+        'ARMO':('eid', 'weight', 'value', 'health', 'ar','dt'),
+        'ARMA':('eid', 'weight', 'value', 'health', 'ar','dt'),
+        'BOOK':('eid', 'weight', 'value'),
+        'INGR':('eid', 'weight', 'value'),
+        'KEYM':('eid', 'weight', 'value'),
+        'LIGH':('eid', 'weight', 'value', 'duration'),
+        'MISC':('eid', 'weight', 'value'),
+        'WEAP':('eid', 'weight', 'value', 'health', 'damage','clipsize',
+                'animationMultiplier','reach','ammoUse','minSpread','spread','sightFov','baseVatsToHitChance','projectileCount',
+                'minRange','maxRange','animationAttackMultiplier','fireRate','overrideActionPoint','rumbleLeftMotorStrength',
+                'rumbleRightMotorStrength','rumbleDuration','overrideDamageToWeaponMult','attackShotsPerSec',
+                'reloadTime','jamTime','aimArc','rambleWavelangth','limbDmgMult','sightUsage',
+                'semiAutomaticFireDelayMin','semiAutomaticFireDelayMax',
+                'strengthReq','regenRate','killImpulse','impulseDist','skillReq',
+                'criticalDamage','criticalMultiplier',
+                'vatsSkill','vatsDamMult','vatsAp'),
+        }
+statsHeaders = (
+        #--Alch
+        ('ALCH',
+            ('"' + '","'.join((_('Type'),_('Mod Name'),_('ObjectIndex'),
+            _('Editor Id'),_('Weight'),_('Value'))) + '"\n')),
+        #Ammo
+        ('AMMO',
+            ('"' + '","'.join((_('Type'),_('Mod Name'),_('ObjectIndex'),
+            _('Editor Id'),_('Weight'),_('Value'),_('Speed'),_('Clip Rounds'),_('Proj/Shot'))) + '"\n')),
+        #--Armor
+        ('ARMO',
+            ('"' + '","'.join((_('Type'),_('Mod Name'),_('ObjectIndex'),
+            _('Editor Id'),_('Weight'),_('Value'),_('Health'),_('AR'),_('DT'))) + '"\n')),
+        #--Armor Addon
+        ('ARMA',
+            ('"' + '","'.join((_('Type'),_('Mod Name'),_('ObjectIndex'),
+            _('Editor Id'),_('Weight'),_('Value'),_('Health'),_('AR'),_('DT'))) + '"\n')),
+        #Books
+        ('BOOK',
+            ('"' + '","'.join((_('Type'),_('Mod Name'),_('ObjectIndex'),
+            _('Editor Id'),_('Weight'),_('Value'))) + '"\n')),
+        #Ingredients
+        ('INGR',
+            ('"' + '","'.join((_('Type'),_('Mod Name'),_('ObjectIndex'),
+            _('Editor Id'),_('Weight'),_('Value'))) + '"\n')),
+        #--Keys
+        ('KEYM',
+            ('"' + '","'.join((_('Type'),_('Mod Name'),_('ObjectIndex'),
+            _('Editor Id'),_('Weight'),_('Value'))) + '"\n')),
+        #Lights
+        ('LIGH',
+            ('"' + '","'.join((_('Type'),_('Mod Name'),_('ObjectIndex'),
+            _('Editor Id'),_('Weight'),_('Value'),_('Duration'))) + '"\n')),
+        #--Misc
+        ('MISC',
+            ('"' + '","'.join((_('Type'),_('Mod Name'),_('ObjectIndex'),
+            _('Editor Id'),_('Weight'),_('Value'))) + '"\n')),
+        #--Weapons
+        ('WEAP',
+            ('"' + '","'.join((_('Type'),_('Mod Name'),_('ObjectIndex'),
+            _('Editor Id'),_('Weight'),_('Value'),_('Health'),_('Damage'),_('Clip Size'),
+            _('Animation Multiplier'), _('Reach'), _('Ammo Use'), _('Min Spread'), _('Spread'), _('Sight Fov'), _('Base VATS To-Hit Chance'), _('Projectile Count'),
+            _('Min Range'), _('Max Range'), _('Animation Attack Multiplier'), _('Fire Rate'), _('Override - Action Point'), _('Rumble - Left Motor Strength'),
+            _('rRmble - Right Motor Strength'), _('Rumble - Duration'), _('Override - Damage To Weapon Mult'), _('Attack Shots/Sec'),
+            _('Reload Time'), _('Jam Time'), _('Aim Arc'), _('Ramble - Wavelangth'), _('Limb Dmg Mult'), _('Sight Usage'),
+            _('Semi-Automatic Fire Delay Min'), _('Semi-Automatic Fire Delay Max'),
+            _('Strength Req'), _('Regen Rate'), _('Kill Impulse'), _('Impulse Dist'), _('Skill Req'),
+                _('Critical Damage'), _('Crit % Mult'),
+                _('VATS Skill'), _('VATS Dam. Mult'), _('VATS AP'))) + '"\n')),
+        )
+
+#--Mergeable record types
+mergeClasses = (
+    MreActi, MreAlch, MreAmmo, MreAnio, MreAppa, MreArmo, MreBook, MreBsgn, MreClas,
+    MreClot, MreCont, MreCrea, MreDoor, MreEfsh, MreEnch, MreEyes, MreFact, MreFlor, MreFurn,
+    MreGlob, MreGras, MreHair, MreIngr, MreKeym, MreLigh, MreLscr, MreLvlc, MreLvli,
+    MreLvsp, MreMgef, MreMisc, MreNpc,  MrePack, MreQust, MreRace, MreScpt, MreSgst,
+    MreSlgm, MreSoun, MreSpel, MreStat, MreTree, MreWatr, MreWeap, MreWthr,
+    MreClmt, MreCsty, MreIdle, MreLtex, MreRegn, MreSbsp, MreSkil,
+    MreTxst, MreMicn, MreFlst, MreLvln, MrePerk, MreExpl, MreIpct, MreIpds, MreProj,
+    MreDebr, MreImad, MreMstt, MreNote, MreTerm, MreAvif, MreEczn, MreBptd, MreVtyp,
+    MreMusc, MrePwat, MreAspc, MreHdpt, MreDobj, MreIdlm, MreArma, MreTact,
+    MreImod, MreRepu, MreRcpe, MreRcct, MreChip, MreCsno, MreLsct, MreMset, MreAloc, MreChal,
+    MreAmef, MreCcrd, MreCmny, MreCdck, MreDehy, MreHung, MreSlpd,
+    )
+        
 #------------------------------------------------------------------------------
 class MreActi(MelRecord):
     """Activator record."""
