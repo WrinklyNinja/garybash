@@ -8,6 +8,20 @@
 
 # Where possible, variable names are the same as used in Bash's game-specific python files.
 
+#--URL to the Nexus site for this game
+nexusUrl = u'http://www.newvegasnexus.com'
+nexusName = u'New Vegas Nexus'
+nexusKey = 'bash.installers.openNewVegasNexus'
+   
+#--Script Extender information
+class se:
+    shortName = u'NVSE'                      # Abbreviated name
+    longName = u'Fallout Script Extender'   # Full name
+    exe = u'nvse_loader.exe'                 # Exe to run
+    steamExe = u'nvse_loader.dll'           # Exe to run if a steam install
+    url = u'http://nvse.silverlock.org/'     # URL to download from
+    urlTip = u'http://nvse.silverlock.org/'  # Tooltip for mouse over the URL
+    
 #--The main plugin Wrye Bash should look for
 masterFiles = [
     u'FalloutNV.esm',
@@ -18,21 +32,7 @@ iniFiles = [
     u'FalloutPrefs.ini',
     u'Fallout_default.ini',
     ]
-
-#--URL to the Nexus site for this game
-nexusUrl = u'http://www.newvegasnexus.com'
-nexusName = u'New Vegas Nexus'
-nexusKey = 'bash.installers.openNewVegasNexus'
-    
-#--Script Extender information
-class se:
-    shortName = u'NVSE'                      # Abbreviated name
-    longName = u'Fallout Script Extender'   # Full name
-    exe = u'nvse_loader.exe'                 # Exe to run
-    steamExe = u'nvse_loader.dll'           # Exe to run if a steam install
-    url = u'http://nvse.silverlock.org/'     # URL to download from
-    urlTip = u'http://nvse.silverlock.org/'  # Tooltip for mouse over the URL
-    
+ 
 #--Game ESM/ESP/BSA files
 bethDataFiles = set((
     #--Vanilla
@@ -66,6 +66,8 @@ bethDataFiles = set((
     r'lonesomeroad - main.bsa',
     r'lonesomeroad - sounds.bsa',
     ))
+
+#--Every file in the Data directory from Bethsoft
 allBethFiles = set((
     #vanilla
     r'Credits.txt',
@@ -376,17 +378,6 @@ allBethFiles = set((
     ))
 
 
-#--Bash Tags supported by this game
-allTags = sorted(('Body-F', 'Body-M', 'Body-Size-M', 'Body-Size-F', 'C.Climate', 'C.Light', 'C.Music', 'C.Name', 'C.RecordFlags',
-                  'C.Owner', 'C.Water','Deactivate', 'Delev', 'Eyes', 'Factions', 'Relations', 'Filter', 'Graphics', 'Hair',
-                  'IIM', 'Invent', 'Names', 'NoMerge', 'NpcFaces', 'R.Relations', 'Relev', 'Scripts', 'ScriptContents', 'Sound',
-                  'Stats', 'Voice-F', 'Voice-M', 'R.Teeth', 'R.Mouth', 'R.Ears', 'R.Head', 'R.Attributes-F',
-                  'R.Attributes-M', 'R.Skills', 'R.Description', 'Roads', 'Actors.Anims',
-                  'Actors.AIData', 'Actors.DeathItem', 'Actors.AIPackages', 'Actors.AIPackagesForceAdd', 'Actors.Stats',
-                  'Actors.ACBS', 'NPC.Class', 'Actors.CombatStyle', 'Creatures.Blood',
-                  'NPC.Race','Actors.Skeleton', 'NpcFacesForceFullImport', 'MustBeActiveIfImported',
-                  'Deflst', 'Destructible', 'WeaponMods'))
-
                   
 # Installer -------------------------------------------------------------------
 # ensure all path strings are prefixed with 'r' to avoid interpretation of
@@ -421,40 +412,292 @@ ignoreDataFiles = set((
 #    r'NVSE\Plugins\Construction Set Extender.dll',
 #    r'NVSE\Plugins\Construction Set Extender.ini'
     ))
- ignoreDataDirs = set((
+ignoreDataDirs = set((
 #    r'NVSE\Plugins\ComponentDLLs\CSE',
     r'LSData'
     ))
 
-# Tes3 Group/Top Types -------------------------------------------------------------
+# Function Info ---------------------------------------------------------------
+conditionFunctionData = ( #--0: no param; 1: int param; 2: formid param
+    (153, 'CanHaveFlames', 0, 0, 0, 0),
+    (127, 'HasBeenEatan', 0, 0, 0, 0),
+    ( 14, 'GetActorValue', 1, 0, 0, 0),
+    ( 61, 'GetAlarmed', 0, 0, 0, 0),
+    (190, 'GetAmountSoldStolen', 0, 0, 0, 0),
+    (  8, 'GetAngle', 1, 0, 0, 0),
+    ( 81, 'GetArmorRating', 0, 0, 0, 0),
+    (274, 'GetArmorRatingUpperBody', 0, 0, 0, 0),
+    ( 63, 'GetAttacked', 0, 0, 0, 0),
+    (264, 'GetBarterGold', 0, 0, 0, 0),
+    (277, 'GetBaseActorValue', 1, 0, 0, 0),
+    (229, 'GetClassDefaultMatch', 0, 0, 0, 0),
+    ( 41, 'GetClothingValue', 0, 0, 0, 0),
+    (122, 'GetCrime', 2, 1, 0, 0),
+    (116, 'GetMinorCrimeCount', 0, 0, 0, 0),
+    (110, 'GetCurrentAIPackage', 0, 0, 0, 0),
+    (143, 'GetCurrentAIProcedure', 0, 0, 0, 0),
+    ( 18, 'GetCurrentTime', 0, 0, 0, 0),
+    (148, 'GetCurrentWeatherPercent', 0, 0, 0, 0),
+    (170, 'GetDayOfWeek', 0, 0, 0, 0),
+    ( 46, 'GetDead', 0, 0, 0, 0),
+    ( 84, 'GetDeadCount', 2, 0, 0, 0),
+    (203, 'GetDestroyed', 0, 0, 0, 0),
+    ( 45, 'GetDetected', 2, 0, 0, 0),
+    (180, 'GetDetectionLevel', 2, 0, 0, 0),
+    ( 35, 'GetDisabled', 0, 0, 0, 0),
+    ( 39, 'GetDisease', 0, 0, 0, 0),
+    ( 76, 'GetDisposition', 2, 0, 0, 0),
+    (  1, 'GetDistance', 2, 0, 0, 0),
+    (215, 'GetDefaultOpen', 0, 0, 0, 0),
+    (182, 'GetEquipped', 2, 0, 0, 0),
+    ( 73, 'GetFactionRank', 2, 0, 0, 0),
+    ( 60, 'GetFactionRankDifference', 2, 2, 0, 0),
+    (128, 'GetFatiguePercentage', 0, 0, 0, 0),
+    (288, 'GetFriendHit', 2, 0, 0, 0),
+    (160, 'GetFurnitureMarkerID', 0, 0, 0, 0),
+    ( 74, 'GetGlobalValue', 2, 0, 0, 0),
+    ( 48, 'GetGold', 0, 0, 0, 0),
+    ( 99, 'GetHeadingAngle', 2, 0, 0, 0),
+    (318, 'GetIdleDoneOnce', 0, 0, 0, 0),
+    (338, 'GetIgnoreFriendlyHits', 0, 0, 0, 0),
+    ( 67, 'GetInCell', 2, 0, 0, 0),
+    (230, 'GetInCellParam', 2, 2, 0, 0),
+    ( 71, 'GetInFaction', 2, 0, 0, 0),
+    ( 32, 'GetInSameCell', 2, 0, 0, 0),
+    (310, 'GetInWorldspace', 2, 0, 0, 0),
+    ( 91, 'GetIsAlerted', 0, 0, 0, 0),
+    ( 68, 'GetIsClass', 2, 0, 0, 0),
+    (228, 'GetIsClassDefault', 2, 0, 0, 0),
+    ( 64, 'GetIsCreature', 0, 0, 0, 0),
+    (161, 'GetIsCurrentPackage', 2, 0, 0, 0),
+    (149, 'GetIsCurrentWeather', 2, 0, 0, 0),
+    (237, 'GetIsGhost', 0, 0, 0, 0),
+    ( 72, 'GetIsID', 2, 0, 0, 0),
+    (254, 'GetIsPlayableRace', 0, 0, 0, 0),
+    (224, 'GetVATSMode', 0, 0, 0, 0),
+    ( 69, 'GetIsRace', 2, 0, 0, 0),
+    (136, 'GetIsReference', 2, 0, 0, 0),
+    ( 70, 'GetIsSex', 1, 0, 0, 0),
+    (246, 'GetIsUsedItem', 2, 0, 0, 0),
+    (247, 'GetIsUsedItemType', 1, 0, 0, 0),
+    ( 47, 'GetItemCount', 2, 0, 0, 0),
+    (107, 'GetKnockedState', 0, 0, 0, 0),
+    ( 80, 'GetLevel', 0, 0, 0, 0),
+    ( 27, 'GetLineOfSight', 2, 0, 0, 0),
+    (  5, 'GetLocked', 0, 0, 0, 0),
+    ( 65, 'GetLockLevel', 0, 0, 0, 0),
+    (320, 'GetNoRumors', 0, 0, 0, 0),
+    (255, 'GetOffersServicesNow', 0, 0, 0, 0),
+    (157, 'GetOpenState', 0, 0, 0, 0),
+    (193, 'GetPCExpelled', 2, 0, 0, 0),
+    (199, 'GetPCFactionAttack', 2, 0, 0, 0),
+    (195, 'GetPCFactionMurder', 2, 0, 0, 0),
+    (197, 'GetPCEnemyofFaction', 2, 0, 0, 0),
+    (132, 'GetPCInFaction', 2, 0, 0, 0),
+    (129, 'GetPCIsClass', 2, 0, 0, 0),
+    (130, 'GetPCIsRace', 2, 0, 0, 0),
+    (131, 'GetPCIsSex', 1, 0, 0, 0),
+    (312, 'GetPCMiscStat', 1, 0, 0, 0),
+    (225, 'GetPersuasionNumber', 0, 0, 0, 0),
+    ( 98, 'GetPlayerControlsDisabled', 0, 0, 0, 0),
+    (365, 'IsChild', 0, 0, 0, 0),
+    (362, 'GetPlayerHasLastRiddenHorse', 0, 0, 0, 0),
+    (  6, 'GetPos', 1, 0, 0, 0),
+    ( 56, 'GetQuestRunning', 2, 0, 0, 0),
+    ( 79, 'GetQuestVariable', 2, 1, 0, 0),
+    ( 77, 'GetRandomPercent', 0, 0, 0, 0),
+    (244, 'GetRestrained', 0, 0, 0, 0),
+    ( 24, 'GetScale', 0, 0, 0, 0),
+    ( 53, 'GetScriptVariable', 2, 1, 0, 0),
+    ( 12, 'GetSecondsPassed', 0, 0, 0, 0),
+    ( 66, 'GetShouldAttack', 2, 0, 0, 0),
+    (159, 'GetSitting', 0, 0, 0, 0),
+    ( 49, 'GetSleeping', 0, 0, 0, 0),
+    ( 58, 'GetStage', 2, 0, 0, 0),
+    ( 59, 'GetStageDone', 2, 1, 0, 0),
+    ( 11, 'GetStartingAngle', 1, 0, 0, 0),
+    ( 10, 'GetStartingPos', 1, 0, 0, 0),
+    ( 50, 'GetTalkedToPC', 0, 0, 0, 0),
+    (172, 'GetTalkedToPCParam', 2, 0, 0, 0),
+    (361, 'GetTimeDead', 0, 0, 0, 0),
+    (315, 'GetTotalPersuasionNumber', 0, 0, 0, 0),
+    (144, 'GetTrespassWarningLevel', 0, 0, 0, 0),
+    (242, 'GetUnconscious', 0, 0, 0, 0),
+    (259, 'GetUsedItemActivate', 0, 0, 0, 0),
+    (258, 'GetUsedItemLevel', 0, 0, 0, 0),
+    ( 40, 'GetVampire', 0, 0, 0, 0),
+    (142, 'GetWalkSpeed', 0, 0, 0, 0),
+    (108, 'GetWeaponAnimType', 0, 0, 0, 0),
+    (109, 'IsWeaponSkillType', 1, 0, 0, 0),
+    (147, 'GetWindSpeed', 0, 0, 0, 0),
+    (154, 'HasFlames', 0, 0, 0, 0),
+    (214, 'HasMagicEffect', 2, 0, 0, 0),
+    (227, 'HasCannibal', 0, 0, 0, 0),
+    (353, 'IsActor', 0, 0, 0, 0),
+    (314, 'IsActorAVictim', 0, 0, 0, 0),
+    (313, 'IsActorEvil', 0, 0, 0, 0),
+    (306, 'IsActorUsingATorch', 0, 0, 0, 0),
+    (280, 'IsCellOwner', 2, 2, 0, 0),
+    (267, 'IsCloudy', 0, 0, 0, 0),
+    (150, 'IsContinuingPackagePCNear', 0, 0, 0, 0),
+    (163, 'IsCurrentFurnitureObj', 2, 0, 0, 0),
+    (162, 'IsCurrentFurnitureRef', 2, 0, 0, 0),
+    (354, 'IsEssential', 0, 0, 0, 0),
+    (106, 'IsFacingUp', 0, 0, 0, 0),
+    (125, 'IsGuard', 0, 0, 0, 0),
+    (282, 'IsHorseStolen', 0, 0, 0, 0),
+    (112, 'IsIdlePlaying', 0, 0, 0, 0),
+    (289, 'IsInCombat', 0, 0, 0, 0),
+    (332, 'IsInDangerousWater', 0, 0, 0, 0),
+    (300, 'IsInInterior', 0, 0, 0, 0),
+    (146, 'IsInMyOwnedCell', 0, 0, 0, 0),
+    (285, 'IsLeftUp', 0, 0, 0, 0),
+    (278, 'IsOwner', 2, 0, 0, 0),
+    (176, 'IsPCAMurderer', 0, 0, 0, 0),
+    (175, 'IsPCSleeping', 0, 0, 0, 0),
+    (358, 'IsPlayerMovingIntoNewSpace', 0, 0, 0, 0),
+    (339, 'IsPlayersLastRiddenHorse', 0, 0, 0, 0),
+    (266, 'IsPleasant', 0, 0, 0, 0),
+    ( 62, 'IsRaining', 0, 0, 0, 0),
+    (327, 'IsRidingHorse', 0, 0, 0, 0),
+    (287, 'IsRunning', 0, 0, 0, 0),
+    (103, 'IsShieldOut', 0, 0, 0, 0),
+    (286, 'IsSneaking', 0, 0, 0, 0),
+    ( 75, 'IsSnowing', 0, 0, 0, 0),
+    (223, 'IsSpellTarget', 2, 0, 0, 0),
+    (185, 'IsSwimming', 0, 0, 0, 0),
+    (141, 'IsTalking', 0, 0, 0, 0),
+    (265, 'IsTimePassing', 0, 0, 0, 0),
+    (102, 'IsTorchOut', 0, 0, 0, 0),
+    (145, 'IsTrespassing', 0, 0, 0, 0),
+    (111, 'IsWaiting', 0, 0, 0, 0),
+    (101, 'IsWeaponOut', 0, 0, 0, 0),
+    (309, 'IsXBox', 0, 0, 0, 0),
+    ( 36, 'MenuMode', 1, 0, 0, 0),
+    ( 42, 'SameFaction', 2, 0, 0, 0),
+    (133, 'SameFactionAsPC', 0, 0, 0, 0),
+    ( 43, 'SameRace', 2, 0, 0, 0),
+    (134, 'SameRaceAsPC', 0, 0, 0, 0),
+    ( 44, 'SameSex', 2, 0, 0, 0),
+    (135, 'SameSexAsPC', 0, 0, 0, 0),
+    (323, 'WhichServiceMenu', 0, 0, 0, 0),
+    (449, 'HasPerk', 2, 1, 1, 2),
+    (546, 'GetQuestCompleted', 2, 0, 0, 0),
+    (427, 'GetIsVoiceType', 2, 0, 0, 0),
+    (523, 'IsPS3', 0, 0, 0, 0),
+    (524, 'IsWin32', 0, 0, 0, 0),
+    (372, 'IsInList', 2, 0, 0, 0),
+    (382, 'GetHasNote', 2, 1, 1, 2),
+    (492, 'GetMapMakerVisible', 1, 1, 1, 2),
+    (446, 'GetInZone', 2, 1, 1, 2),
+    ( 25, 'IsMoving', 0, 0, 0, 0),
+    ( 26, 'IsTurning', 0, 0, 0, 0),
+    (451, 'IsLastIdlePlayed', 2, 0, 0, 0),
+    (399, 'IsWeaponInList', 2, 0, 0, 0),
+    (408, 'GetVATSValue', 1, 2, 0, 0),
+    (435, 'GetDialogueEmotion', 0, 0, 0, 0),
+    (235, 'GetVatsTargetHeight', 0, 0, 0, 0),
+    (391, 'GetHitLocation', 0, 0, 0, 0),
+    (392, 'IsPC1stPerson', 0, 0, 0, 0),
+    (226, 'GetSandman', 0, 0, 0, 0),
+    (428, 'GetPlantedExplosive', 0, 0, 0, 0),
+    (304, 'IsWaterObject', 0, 0, 0, 0),
+    (123, 'IsGreetingPlayer', 0, 0, 0, 0),
+    (438, 'GetIsCreatureType', 1, 0, 0, 0),
+    (503, 'GetRadiationLevel', 0, 0, 0, 0),
+    (431, 'GetHealthPercentage', 0, 0, 0, 0),
+    (411, 'GetFactionCombatReaction', 2, 2, 0, 0),
+    (515, 'IsCombatTarget', 2, 0, 0, 0),
+    (495, 'GetPermanentActorValue', 1, 0, 0, 0),
+    (474, 'GetIsAlignment', 1, 0, 0, 0),
+    (454, 'GetPlayerTeammate', 0, 0, 0, 0),
+    (522, 'GetIsLockBroken', 0, 0, 0, 0),
+    (433, 'GetIsObjectType', 1, 0, 0, 0),
+    (500, 'GetWeaponHealthPerc', 0, 0, 0, 0),
+    (368, 'IsPlayerActionActive', 1, 0, 0, 0),
+    (416, 'GetGroupMemberCount', 0, 0, 0, 0),
+    (417, 'GetGroupTargetCount', 0, 0, 0, 0),
+    (510, 'GetLastHitCritical', 0, 0, 0, 0),
+    (450, 'GetFactionRelation', 1, 0, 0, 0),
+    (455, 'GetPlayerTeammateCount', 0, 0, 0, 0),
+    (219, 'GetAnimAction', 0, 0, 0, 0),
+    (430, 'IsActorTalkingThroughActivator', 0, 0, 0, 0),
+    (480, 'GetIsUsedItemEquipType', 1, 0, 0, 0),
+    (398, 'IsLimbGone', 1, 0, 0, 0),
+    (550, 'IsGoreDisabled', 0, 0, 0, 0),
+    (420, 'GetObjectiveCompleted', 2, 1, 0, 0),
+    (421, 'GetObjectiveDisplayed', 2, 1, 0, 0),
+    (397, 'GetCauseofDeath', 0, 0, 0, 0),
+    (415, 'Exists', 2, 0, 0, 0),
+    (117, 'GetMajorCrimeCount', 0, 0, 0, 0),
+    (471, 'GetDestructionStage', 0, 0, 0, 0),
+    (460, 'GetActorFactionPlayerEnemy', 0, 0, 0, 0),
+    (586, 'IsHardcore', 0, 0, 0, 0),
+    (575, 'GetReputationThreshold', 2, 1, 0, 0),
+    (610, 'GetCasinoWinningStage', 2, 0, 0, 0),
+    (573, 'GetReputation', 2, 1, 0, 0),
+    (612, 'PlayerInRegion', 2, 0, 0, 0),
+    (601, 'GetForceHitReaction', 0, 0, 0, 0),
+    (118, 'GetActorAggroRadiusViolated', 0, 0, 0, 0),
+    (192, 'GetIgnoreCrime', 0, 0, 0, 0),
+    (367, 'GetLastPlayerAction', 0, 0, 0, 0),
+    (370, 'IsTalkingActivatorActor', 2, 0, 0, 0),
+    (403, 'HasFriendDisposition', 0, 0, 0, 0),
+    (409, 'IsKiller', 2, 0, 0, 0),
+    (410, 'IsKillerObject', 2, 0, 0, 0),
+    (436, 'GetDialogueEmotionValue', 0, 0, 0, 0),
+    (459, 'GetActorCrimePlayerEnemy', 0, 0, 0, 0),
+    (462, 'IsPlayerTagSkill', 1, 0, 0, 0),
+    (464, 'IsPlayerGrabbedRef', 1, 0, 0, 0),
+    (478, 'GetThreatRatio', 2, 0, 0, 0),
+    (489, 'GetConcussed', 0, 0, 0, 0),
+    (496, 'GetKillingBlowLimb', 0, 0, 0, 0),
+    (518, 'GetVATSRightAreaFree', 1, 0, 0, 0),
+    (519, 'GetVATSLeftAreaFree', 1, 0, 0, 0),
+    (520, 'GetVATSBackAreaFree', 1, 0, 0, 0),
+    (521, 'GetVATSFrontAreaFree', 1, 0, 0, 0),
+    (525, 'GetVATSRightTargetVisible', 1, 0, 0, 0),
+    (526, 'GetVATSLeftTargetVisible', 1, 0, 0, 0),
+    (527, 'GetVATSBackTargetVisible', 1, 0, 0, 0),
+    (528, 'GetVATSFrontTargetVisible', 1, 0, 0, 0),
+    (531, 'IsInCriticalStage', 1, 0, 0, 0),
+    (533, 'GetXPForNextLevel', 0, 0, 0, 0),
+    (555, 'GetSpellUsageNum', 2, 0, 0, 0),
+    (557, 'GetActorsInHigh', 0, 0, 0, 0),
+    (558, 'HasLoaded3D', 0, 0, 0, 0),
+    (574, 'GetReputationPct', 2, 1, 0, 0),
+    (607, 'ChallengeLocked', 2, 0, 0, 0),
+    (614, 'GetChallengeCompleted', 2, 0, 0, 0),
+    (619, 'IsAlwaysHardcore', 0, 0, 0, 0),
 
-#--Top types in FalloutNV order.
-topTypes = ['GMST', 'TXST', 'MICN', 'GLOB', 'CLAS', 'FACT', 'HDPT', 'HAIR', 'EYES',
-    'RACE', 'SOUN', 'ASPC', 'MGEF', 'SCPT', 'LTEX', 'ENCH', 'SPEL', 'ACTI', 'TACT',
-    'TERM', 'ARMO', 'BOOK', 'CONT', 'DOOR', 'INGR', 'LIGH', 'MISC', 'STAT', 'SCOL',
-    'MSTT', 'PWAT', 'GRAS', 'TREE', 'FURN', 'WEAP', 'AMMO', 'NPC_', 'CREA', 'LVLC',
-    'LVLN', 'KEYM', 'ALCH', 'IDLM', 'NOTE', 'PROJ', 'LVLI', 'WTHR', 'CLMT', 'REGN',
-    'NAVI', 'CELL', 'WRLD', 'DIAL', 'QUST', 'IDLE', 'PACK', 'CSTY', 'LSCR', 'ANIO',
-    'WATR', 'EFSH', 'EXPL', 'DEBR', 'IMGS', 'IMAD', 'FLST', 'PERK', 'BPTD', 'ADDN',
-    'COBJ', 'AVIF', 'RADS', 'CAMS', 'CPTH', 'VTYP', 'IPCT', 'IPDS', 'ARMA', 'ECZN',
-    'MESG', 'RGDL', 'DOBJ', 'LGTM', 'MUSC', 'IMOD', 'REPU', 'RCPE', 'RCCT', 'CHIP',
-    'CSNO', 'LSCT', 'MSET', 'ALOC', 'CHAL', 'AMEF', 'CCRD', 'CMNY', 'CDCK', 'DEHY',
-    'HUNG', 'SLPD',
-    # Unused types in falloutNV. (dummy)
-    'SLGM', 'BSGN', 'FLOR', 'SGST', 'CLOT', 'SBSP', 'SKIL', 'LVSP', 'APPA',
-    ]
+    # extended by NVSE
+    (1024, 'GetNVSEVersion', 0, 0, 0, 0),
+    (1025, 'GetNVSERevision', 0, 0, 0, 0),
+    (1213, 'GetNVSEBeta', 0, 0, 0, 0),
+    (1082, 'IsKeyPressed', 1, 0, 0, 0),
+    (1166, 'IsControlPressed', 1, 0, 0, 0),
+    (1028, 'GetWeight', 2, 0, 0, 0),
+    (1165, 'GetWeaponHasScope', 0, 0, 0, 0),
+    )
+allConditions = set(entry[0] for entry in conditionFunctionData)
+fid1Conditions = set(entry[0] for entry in conditionFunctionData if entry[2] == 2)
+fid2Conditions = set(entry[0] for entry in conditionFunctionData if entry[3] == 2)
+fid3Conditions = set(entry[0] for entry in conditionFunctionData if entry[4] == 2)
+fid4Conditions = set(entry[0] for entry in conditionFunctionData if entry[5] == 2)
 
-# Fo3 added
-# ['BPTD', 'VTYP', 'MUSC', 'FLST', 'PWAT', 'MICN', 'AVIF', 'NOTE', 'TERM', 'ASPC',
-#  'PERK', 'HDPT', 'TXST', 'DOBJ', 'NAVI', 'EXPL', 'IPDS', 'IDLM', 'ARMA', 'LVLN',
-#  'MSTT', 'IMAD', 'TACT', 'RGDL', 'CPTH', 'IMGS', 'MESG', 'DEBR', 'LGTM', 'SCOL',
-#  'ECZN', 'CAMS', 'RADS', 'PROJ', 'IPCT', 'ADDN', 'COBJ' ]
-# NV added
-# ['IMOD', 'REPU', 'RCPE', 'RCCT', 'CHIP', 'CSNO', 'LSCT', 'MSET', 'ALOC', 'CHAL',
-#  'AMEF', 'CCRD', 'CMNY', 'CDCK', 'DEHY', 'HUNG', 'SLPD' ]
-# Oblivion specifics
-# ['SLGM', 'BSGN', 'FLOR', 'SGST', 'CLOT', 'SBSP', 'SKIL', 'LVSP', 'APPA']
-
+# Magic Info ------------------------------------------------------------------
+weaponTypes = (
+    _('Big gun'),
+    _('Energy'),
+    _('Small gun'),
+    _('Melee'),
+    _('Unarmed'),
+    _('Thrown'),
+    _('Mine'),
+    )
+   
+#--List of GMST's in the main plugin (Oblivion.esm) that have 0x00000000
+#  as the form id.  Any GMST as such needs it Editor Id listed here.
 gmstEids = ['fPlayerDeathReloadTime','iMapMarkerVisibleDistance','fVanityModeWheelMax','fChase3rdPersonZUnitsPerSecond',
     'fAutoAimMaxDegreesMiss','iHoursToRespawnCell','fEssentialDeathTime','fJumpHeightMin','fPlayerPipBoyLightTimer',
     'iAINumberActorsComplexScene','iHackingMaxWords','fGunShellLifetime','fGunShellCameraDistance','fGunDecalCameraDistance',
@@ -464,15 +707,24 @@ gmstEids = ['fPlayerDeathReloadTime','iMapMarkerVisibleDistance','fVanityModeWhe
     'iRemoveExcessDeadComplexTotalActorCount','iRemoveExcessDeadComplexCount', 'fRemoveExcessDeadTime','fRemoveExcessComplexDeadTime',
     'iLevItemLevelDifferenceMax','fMoveWeightMax',
     ]
+ 
+#--Bash Tags supported by this game
+allTags = sorted(('Body-F', 'Body-M', 'Body-Size-M', 'Body-Size-F', 'C.Climate', 'C.Light', 'C.Music', 'C.Name', 'C.RecordFlags',
+                  'C.Owner', 'C.Water','Deactivate', 'Delev', 'Eyes', 'Factions', 'Relations', 'Filter', 'Graphics', 'Hair',
+                  'IIM', 'Invent', 'Names', 'NoMerge', 'NpcFaces', 'R.Relations', 'Relev', 'Scripts', 'ScriptContents', 'Sound',
+                  'Stats', 'Voice-F', 'Voice-M', 'R.Teeth', 'R.Mouth', 'R.Ears', 'R.Head', 'R.Attributes-F',
+                  'R.Attributes-M', 'R.Skills', 'R.Description', 'Roads', 'Actors.Anims',
+                  'Actors.AIData', 'Actors.DeathItem', 'Actors.AIPackages', 'Actors.AIPackagesForceAdd', 'Actors.Stats',
+                  'Actors.ACBS', 'NPC.Class', 'Actors.CombatStyle', 'Creatures.Blood',
+                  'NPC.Race','Actors.Skeleton', 'NpcFacesForceFullImport', 'MustBeActiveIfImported',
+                  'Deflst', 'Destructible', 'WeaponMods'))
 
-    
 namesTypes = set((
         'ALCH', 'AMMO', 'APPA', 'ARMO', 'BOOK', 'CLAS', 'CLOT', 'CONT', 'CREA', 'DOOR',
         'EYES', 'FACT', 'FLOR', 'HAIR', 'INGR', 'KEYM', 'LIGH', 'MISC', 'NOTE', 'NPC_',
         'RACE', 'SPEL', 'TERM', 'WEAP', 'ACTI', 'TACT',
         'CMNY', 'CCRD', 'IMOD', 'REPU', 'RCPE', 'RCCT', 'CHIP', 'CSNO'))
-
-        
+       
 statsTypes = {
         'ALCH':('eid', 'weight', 'value'),
         'AMMO':('eid', 'weight', 'value', 'speed', 'clipRounds','projPerShot'),
@@ -641,72 +893,29 @@ raceHairFemale = {
     0x0987df : 0x044529, #--COA
     }
  
-# Default Eyes/Hair -----------------------------------------------------------
-#standardEyes = [ob(x) for x in (0x27306,0x27308,0x27309)] + [cobl(x) for x in (0x000821, 0x000823, 0x000825, 0x000828, 0x000834, 0x000837, 0x000839, 0x00084F, )]
-standardEyes = [ob(x) for x in (0x4252,0x4253,0x4254,0x4255,0x4256)]
- 
-defaultEyes = {
-    #--fallout3.esm
-    ob(0x000019): #--Caucasian
-        standardEyes,
-    ob(0x0038e5): #--Hispanic
-        standardEyes,
-    ob(0x0038e6): #--Asian
-        standardEyes,
-    ob(0x003b3e): #--Ghoul
-        [ob(0x35e4f)],
-    ob(0x00424a): #--AfricanAmerican
-        standardEyes,
-    ob(0x0042be): #--AfricanAmerican Child
-        standardEyes,
-    ob(0x0042bf): #--AfricanAmerican Old
-        standardEyes,
-    ob(0x0042c0): #--Asian Child
-        standardEyes,
-    ob(0x0042c1): #--Asian Old
-        standardEyes,
-    ob(0x0042c2): #--Caucasian Child
-        standardEyes,
-    ob(0x0042c3): #--Caucasian Old
-        standardEyes,
-    ob(0x0042c4): #--Hispanic Child
-        standardEyes,
-    ob(0x0042c5): #--Hispanic Old
-        standardEyes,
-    ob(0x04bb8d): #--Caucasian Raider
-        [ob(0x4cb10)],
-    ob(0x04bf70): #--Hispanic Raider
-        [ob(0x4cb10)],
-    ob(0x04bf71): #--Asian Raider
-        [ob(0x4cb10)],
-    ob(0x04bf72): #--AfricanAmerican Raider
-        [ob(0x4cb10)],
-    ob(0x0987dc): #--Hispanic Old Aged
-        standardEyes,
-    ob(0x0987dd): #--Asian Old Aged
-        standardEyes,
-    ob(0x0987de): #--AfricanAmerican Old Aged
-        standardEyes,
-    ob(0x0987df): #--Caucasian Old Aged
-        standardEyes,
-    }
- 
-        
-#--Mergeable record types
-mergeClasses = (
-    MreActi, MreAlch, MreAmmo, MreAnio, MreAppa, MreArmo, MreBook, MreBsgn, MreClas,
-    MreClot, MreCont, MreCrea, MreDoor, MreEfsh, MreEnch, MreEyes, MreFact, MreFlor, MreFurn,
-    MreGlob, MreGras, MreHair, MreIngr, MreKeym, MreLigh, MreLscr, MreLvlc, MreLvli,
-    MreLvsp, MreMgef, MreMisc, MreNpc,  MrePack, MreQust, MreRace, MreScpt, MreSgst,
-    MreSlgm, MreSoun, MreSpel, MreStat, MreTree, MreWatr, MreWeap, MreWthr,
-    MreClmt, MreCsty, MreIdle, MreLtex, MreRegn, MreSbsp, MreSkil,
-    MreTxst, MreMicn, MreFlst, MreLvln, MrePerk, MreExpl, MreIpct, MreIpds, MreProj,
-    MreDebr, MreImad, MreMstt, MreNote, MreTerm, MreAvif, MreEczn, MreBptd, MreVtyp,
-    MreMusc, MrePwat, MreAspc, MreHdpt, MreDobj, MreIdlm, MreArma, MreTact,
-    MreImod, MreRepu, MreRcpe, MreRcct, MreChip, MreCsno, MreLsct, MreMset, MreAloc, MreChal,
-    MreAmef, MreCcrd, MreCmny, MreCdck, MreDehy, MreHung, MreSlpd,
-    )
-        
+#--Plugin format stuff
+class esp:
+    #--Valid ESM/ESP header versions
+    validHeaderVersions = (1.32)
+     
+    #--Top types in FalloutNV order.
+    topTypes = ['GMST', 'TXST', 'MICN', 'GLOB', 'CLAS', 'FACT', 'HDPT', 'HAIR', 'EYES',
+        'RACE', 'SOUN', 'ASPC', 'MGEF', 'SCPT', 'LTEX', 'ENCH', 'SPEL', 'ACTI', 'TACT',
+        'TERM', 'ARMO', 'BOOK', 'CONT', 'DOOR', 'INGR', 'LIGH', 'MISC', 'STAT', 'SCOL',
+        'MSTT', 'PWAT', 'GRAS', 'TREE', 'FURN', 'WEAP', 'AMMO', 'NPC_', 'CREA', 'LVLC',
+        'LVLN', 'KEYM', 'ALCH', 'IDLM', 'NOTE', 'PROJ', 'LVLI', 'WTHR', 'CLMT', 'REGN',
+        'NAVI', 'CELL', 'WRLD', 'DIAL', 'QUST', 'IDLE', 'PACK', 'CSTY', 'LSCR', 'ANIO',
+        'WATR', 'EFSH', 'EXPL', 'DEBR', 'IMGS', 'IMAD', 'FLST', 'PERK', 'BPTD', 'ADDN',
+        'COBJ', 'AVIF', 'RADS', 'CAMS', 'CPTH', 'VTYP', 'IPCT', 'IPDS', 'ARMA', 'ECZN',
+        'MESG', 'RGDL', 'DOBJ', 'LGTM', 'MUSC', 'IMOD', 'REPU', 'RCPE', 'RCCT', 'CHIP',
+        'CSNO', 'LSCT', 'MSET', 'ALOC', 'CHAL', 'AMEF', 'CCRD', 'CMNY', 'CDCK', 'DEHY',
+        'HUNG', 'SLPD',
+        # Unused types in falloutNV. (dummy)
+        'SLGM', 'BSGN', 'FLOR', 'SGST', 'CLOT', 'SBSP', 'SKIL', 'LVSP', 'APPA',
+        ]
+    
+    recordTypes = set(topTypes + 'GRUP,TES4,ROAD,REFR,ACHR,ACRE,PGRD,LAND,INFO,PGRE,NAVM'.split(','))
+      
 #------------------------------------------------------------------------------
 class MreActi(MelRecord):
     """Activator record."""
@@ -2141,298 +2350,22 @@ class MreSlpd(MelRecord):
         MelStruct('DATA','2I','trigerThreshold',(FID,'actorEffect')),
         )
     __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
- 
-# Id Functions ----------------------------------------------------------------
-
-ob = getIdFunc('FalloutNV.esm')
-
-# Function Info ---------------------------------------------------------------
-conditionFunctionData = ( #--0: no param; 1: int param; 2: formid param
-    (153, 'CanHaveFlames', 0, 0, 0, 0),
-    (127, 'HasBeenEatan', 0, 0, 0, 0),
-    ( 14, 'GetActorValue', 1, 0, 0, 0),
-    ( 61, 'GetAlarmed', 0, 0, 0, 0),
-    (190, 'GetAmountSoldStolen', 0, 0, 0, 0),
-    (  8, 'GetAngle', 1, 0, 0, 0),
-    ( 81, 'GetArmorRating', 0, 0, 0, 0),
-    (274, 'GetArmorRatingUpperBody', 0, 0, 0, 0),
-    ( 63, 'GetAttacked', 0, 0, 0, 0),
-    (264, 'GetBarterGold', 0, 0, 0, 0),
-    (277, 'GetBaseActorValue', 1, 0, 0, 0),
-    (229, 'GetClassDefaultMatch', 0, 0, 0, 0),
-    ( 41, 'GetClothingValue', 0, 0, 0, 0),
-    (122, 'GetCrime', 2, 1, 0, 0),
-    (116, 'GetMinorCrimeCount', 0, 0, 0, 0),
-    (110, 'GetCurrentAIPackage', 0, 0, 0, 0),
-    (143, 'GetCurrentAIProcedure', 0, 0, 0, 0),
-    ( 18, 'GetCurrentTime', 0, 0, 0, 0),
-    (148, 'GetCurrentWeatherPercent', 0, 0, 0, 0),
-    (170, 'GetDayOfWeek', 0, 0, 0, 0),
-    ( 46, 'GetDead', 0, 0, 0, 0),
-    ( 84, 'GetDeadCount', 2, 0, 0, 0),
-    (203, 'GetDestroyed', 0, 0, 0, 0),
-    ( 45, 'GetDetected', 2, 0, 0, 0),
-    (180, 'GetDetectionLevel', 2, 0, 0, 0),
-    ( 35, 'GetDisabled', 0, 0, 0, 0),
-    ( 39, 'GetDisease', 0, 0, 0, 0),
-    ( 76, 'GetDisposition', 2, 0, 0, 0),
-    (  1, 'GetDistance', 2, 0, 0, 0),
-    (215, 'GetDefaultOpen', 0, 0, 0, 0),
-    (182, 'GetEquipped', 2, 0, 0, 0),
-    ( 73, 'GetFactionRank', 2, 0, 0, 0),
-    ( 60, 'GetFactionRankDifference', 2, 2, 0, 0),
-    (128, 'GetFatiguePercentage', 0, 0, 0, 0),
-    (288, 'GetFriendHit', 2, 0, 0, 0),
-    (160, 'GetFurnitureMarkerID', 0, 0, 0, 0),
-    ( 74, 'GetGlobalValue', 2, 0, 0, 0),
-    ( 48, 'GetGold', 0, 0, 0, 0),
-    ( 99, 'GetHeadingAngle', 2, 0, 0, 0),
-    (318, 'GetIdleDoneOnce', 0, 0, 0, 0),
-    (338, 'GetIgnoreFriendlyHits', 0, 0, 0, 0),
-    ( 67, 'GetInCell', 2, 0, 0, 0),
-    (230, 'GetInCellParam', 2, 2, 0, 0),
-    ( 71, 'GetInFaction', 2, 0, 0, 0),
-    ( 32, 'GetInSameCell', 2, 0, 0, 0),
-    (310, 'GetInWorldspace', 2, 0, 0, 0),
-    ( 91, 'GetIsAlerted', 0, 0, 0, 0),
-    ( 68, 'GetIsClass', 2, 0, 0, 0),
-    (228, 'GetIsClassDefault', 2, 0, 0, 0),
-    ( 64, 'GetIsCreature', 0, 0, 0, 0),
-    (161, 'GetIsCurrentPackage', 2, 0, 0, 0),
-    (149, 'GetIsCurrentWeather', 2, 0, 0, 0),
-    (237, 'GetIsGhost', 0, 0, 0, 0),
-    ( 72, 'GetIsID', 2, 0, 0, 0),
-    (254, 'GetIsPlayableRace', 0, 0, 0, 0),
-    (224, 'GetVATSMode', 0, 0, 0, 0),
-    ( 69, 'GetIsRace', 2, 0, 0, 0),
-    (136, 'GetIsReference', 2, 0, 0, 0),
-    ( 70, 'GetIsSex', 1, 0, 0, 0),
-    (246, 'GetIsUsedItem', 2, 0, 0, 0),
-    (247, 'GetIsUsedItemType', 1, 0, 0, 0),
-    ( 47, 'GetItemCount', 2, 0, 0, 0),
-    (107, 'GetKnockedState', 0, 0, 0, 0),
-    ( 80, 'GetLevel', 0, 0, 0, 0),
-    ( 27, 'GetLineOfSight', 2, 0, 0, 0),
-    (  5, 'GetLocked', 0, 0, 0, 0),
-    ( 65, 'GetLockLevel', 0, 0, 0, 0),
-    (320, 'GetNoRumors', 0, 0, 0, 0),
-    (255, 'GetOffersServicesNow', 0, 0, 0, 0),
-    (157, 'GetOpenState', 0, 0, 0, 0),
-    (193, 'GetPCExpelled', 2, 0, 0, 0),
-    (199, 'GetPCFactionAttack', 2, 0, 0, 0),
-    (195, 'GetPCFactionMurder', 2, 0, 0, 0),
-    (197, 'GetPCEnemyofFaction', 2, 0, 0, 0),
-    (132, 'GetPCInFaction', 2, 0, 0, 0),
-    (129, 'GetPCIsClass', 2, 0, 0, 0),
-    (130, 'GetPCIsRace', 2, 0, 0, 0),
-    (131, 'GetPCIsSex', 1, 0, 0, 0),
-    (312, 'GetPCMiscStat', 1, 0, 0, 0),
-    (225, 'GetPersuasionNumber', 0, 0, 0, 0),
-    ( 98, 'GetPlayerControlsDisabled', 0, 0, 0, 0),
-    (365, 'IsChild', 0, 0, 0, 0),
-    (362, 'GetPlayerHasLastRiddenHorse', 0, 0, 0, 0),
-    (  6, 'GetPos', 1, 0, 0, 0),
-    ( 56, 'GetQuestRunning', 2, 0, 0, 0),
-    ( 79, 'GetQuestVariable', 2, 1, 0, 0),
-    ( 77, 'GetRandomPercent', 0, 0, 0, 0),
-    (244, 'GetRestrained', 0, 0, 0, 0),
-    ( 24, 'GetScale', 0, 0, 0, 0),
-    ( 53, 'GetScriptVariable', 2, 1, 0, 0),
-    ( 12, 'GetSecondsPassed', 0, 0, 0, 0),
-    ( 66, 'GetShouldAttack', 2, 0, 0, 0),
-    (159, 'GetSitting', 0, 0, 0, 0),
-    ( 49, 'GetSleeping', 0, 0, 0, 0),
-    ( 58, 'GetStage', 2, 0, 0, 0),
-    ( 59, 'GetStageDone', 2, 1, 0, 0),
-    ( 11, 'GetStartingAngle', 1, 0, 0, 0),
-    ( 10, 'GetStartingPos', 1, 0, 0, 0),
-    ( 50, 'GetTalkedToPC', 0, 0, 0, 0),
-    (172, 'GetTalkedToPCParam', 2, 0, 0, 0),
-    (361, 'GetTimeDead', 0, 0, 0, 0),
-    (315, 'GetTotalPersuasionNumber', 0, 0, 0, 0),
-    (144, 'GetTrespassWarningLevel', 0, 0, 0, 0),
-    (242, 'GetUnconscious', 0, 0, 0, 0),
-    (259, 'GetUsedItemActivate', 0, 0, 0, 0),
-    (258, 'GetUsedItemLevel', 0, 0, 0, 0),
-    ( 40, 'GetVampire', 0, 0, 0, 0),
-    (142, 'GetWalkSpeed', 0, 0, 0, 0),
-    (108, 'GetWeaponAnimType', 0, 0, 0, 0),
-    (109, 'IsWeaponSkillType', 1, 0, 0, 0),
-    (147, 'GetWindSpeed', 0, 0, 0, 0),
-    (154, 'HasFlames', 0, 0, 0, 0),
-    (214, 'HasMagicEffect', 2, 0, 0, 0),
-    (227, 'HasCannibal', 0, 0, 0, 0),
-    (353, 'IsActor', 0, 0, 0, 0),
-    (314, 'IsActorAVictim', 0, 0, 0, 0),
-    (313, 'IsActorEvil', 0, 0, 0, 0),
-    (306, 'IsActorUsingATorch', 0, 0, 0, 0),
-    (280, 'IsCellOwner', 2, 2, 0, 0),
-    (267, 'IsCloudy', 0, 0, 0, 0),
-    (150, 'IsContinuingPackagePCNear', 0, 0, 0, 0),
-    (163, 'IsCurrentFurnitureObj', 2, 0, 0, 0),
-    (162, 'IsCurrentFurnitureRef', 2, 0, 0, 0),
-    (354, 'IsEssential', 0, 0, 0, 0),
-    (106, 'IsFacingUp', 0, 0, 0, 0),
-    (125, 'IsGuard', 0, 0, 0, 0),
-    (282, 'IsHorseStolen', 0, 0, 0, 0),
-    (112, 'IsIdlePlaying', 0, 0, 0, 0),
-    (289, 'IsInCombat', 0, 0, 0, 0),
-    (332, 'IsInDangerousWater', 0, 0, 0, 0),
-    (300, 'IsInInterior', 0, 0, 0, 0),
-    (146, 'IsInMyOwnedCell', 0, 0, 0, 0),
-    (285, 'IsLeftUp', 0, 0, 0, 0),
-    (278, 'IsOwner', 2, 0, 0, 0),
-    (176, 'IsPCAMurderer', 0, 0, 0, 0),
-    (175, 'IsPCSleeping', 0, 0, 0, 0),
-    (358, 'IsPlayerMovingIntoNewSpace', 0, 0, 0, 0),
-    (339, 'IsPlayersLastRiddenHorse', 0, 0, 0, 0),
-    (266, 'IsPleasant', 0, 0, 0, 0),
-    ( 62, 'IsRaining', 0, 0, 0, 0),
-    (327, 'IsRidingHorse', 0, 0, 0, 0),
-    (287, 'IsRunning', 0, 0, 0, 0),
-    (103, 'IsShieldOut', 0, 0, 0, 0),
-    (286, 'IsSneaking', 0, 0, 0, 0),
-    ( 75, 'IsSnowing', 0, 0, 0, 0),
-    (223, 'IsSpellTarget', 2, 0, 0, 0),
-    (185, 'IsSwimming', 0, 0, 0, 0),
-    (141, 'IsTalking', 0, 0, 0, 0),
-    (265, 'IsTimePassing', 0, 0, 0, 0),
-    (102, 'IsTorchOut', 0, 0, 0, 0),
-    (145, 'IsTrespassing', 0, 0, 0, 0),
-    (111, 'IsWaiting', 0, 0, 0, 0),
-    (101, 'IsWeaponOut', 0, 0, 0, 0),
-    (309, 'IsXBox', 0, 0, 0, 0),
-    ( 36, 'MenuMode', 1, 0, 0, 0),
-    ( 42, 'SameFaction', 2, 0, 0, 0),
-    (133, 'SameFactionAsPC', 0, 0, 0, 0),
-    ( 43, 'SameRace', 2, 0, 0, 0),
-    (134, 'SameRaceAsPC', 0, 0, 0, 0),
-    ( 44, 'SameSex', 2, 0, 0, 0),
-    (135, 'SameSexAsPC', 0, 0, 0, 0),
-    (323, 'WhichServiceMenu', 0, 0, 0, 0),
-    (449, 'HasPerk', 2, 1, 1, 2),
-    (546, 'GetQuestCompleted', 2, 0, 0, 0),
-    (427, 'GetIsVoiceType', 2, 0, 0, 0),
-    (523, 'IsPS3', 0, 0, 0, 0),
-    (524, 'IsWin32', 0, 0, 0, 0),
-    (372, 'IsInList', 2, 0, 0, 0),
-    (382, 'GetHasNote', 2, 1, 1, 2),
-    (492, 'GetMapMakerVisible', 1, 1, 1, 2),
-    (446, 'GetInZone', 2, 1, 1, 2),
-    ( 25, 'IsMoving', 0, 0, 0, 0),
-    ( 26, 'IsTurning', 0, 0, 0, 0),
-    (451, 'IsLastIdlePlayed', 2, 0, 0, 0),
-    (399, 'IsWeaponInList', 2, 0, 0, 0),
-    (408, 'GetVATSValue', 1, 2, 0, 0),
-    (435, 'GetDialogueEmotion', 0, 0, 0, 0),
-    (235, 'GetVatsTargetHeight', 0, 0, 0, 0),
-    (391, 'GetHitLocation', 0, 0, 0, 0),
-    (392, 'IsPC1stPerson', 0, 0, 0, 0),
-    (226, 'GetSandman', 0, 0, 0, 0),
-    (428, 'GetPlantedExplosive', 0, 0, 0, 0),
-    (304, 'IsWaterObject', 0, 0, 0, 0),
-    (123, 'IsGreetingPlayer', 0, 0, 0, 0),
-    (438, 'GetIsCreatureType', 1, 0, 0, 0),
-    (503, 'GetRadiationLevel', 0, 0, 0, 0),
-    (431, 'GetHealthPercentage', 0, 0, 0, 0),
-    (411, 'GetFactionCombatReaction', 2, 2, 0, 0),
-    (515, 'IsCombatTarget', 2, 0, 0, 0),
-    (495, 'GetPermanentActorValue', 1, 0, 0, 0),
-    (474, 'GetIsAlignment', 1, 0, 0, 0),
-    (454, 'GetPlayerTeammate', 0, 0, 0, 0),
-    (522, 'GetIsLockBroken', 0, 0, 0, 0),
-    (433, 'GetIsObjectType', 1, 0, 0, 0),
-    (500, 'GetWeaponHealthPerc', 0, 0, 0, 0),
-    (368, 'IsPlayerActionActive', 1, 0, 0, 0),
-    (416, 'GetGroupMemberCount', 0, 0, 0, 0),
-    (417, 'GetGroupTargetCount', 0, 0, 0, 0),
-    (510, 'GetLastHitCritical', 0, 0, 0, 0),
-    (450, 'GetFactionRelation', 1, 0, 0, 0),
-    (455, 'GetPlayerTeammateCount', 0, 0, 0, 0),
-    (219, 'GetAnimAction', 0, 0, 0, 0),
-    (430, 'IsActorTalkingThroughActivator', 0, 0, 0, 0),
-    (480, 'GetIsUsedItemEquipType', 1, 0, 0, 0),
-    (398, 'IsLimbGone', 1, 0, 0, 0),
-    (550, 'IsGoreDisabled', 0, 0, 0, 0),
-    (420, 'GetObjectiveCompleted', 2, 1, 0, 0),
-    (421, 'GetObjectiveDisplayed', 2, 1, 0, 0),
-    (397, 'GetCauseofDeath', 0, 0, 0, 0),
-    (415, 'Exists', 2, 0, 0, 0),
-    (117, 'GetMajorCrimeCount', 0, 0, 0, 0),
-    (471, 'GetDestructionStage', 0, 0, 0, 0),
-    (460, 'GetActorFactionPlayerEnemy', 0, 0, 0, 0),
-    (586, 'IsHardcore', 0, 0, 0, 0),
-    (575, 'GetReputationThreshold', 2, 1, 0, 0),
-    (610, 'GetCasinoWinningStage', 2, 0, 0, 0),
-    (573, 'GetReputation', 2, 1, 0, 0),
-    (612, 'PlayerInRegion', 2, 0, 0, 0),
-    (601, 'GetForceHitReaction', 0, 0, 0, 0),
-    (118, 'GetActorAggroRadiusViolated', 0, 0, 0, 0),
-    (192, 'GetIgnoreCrime', 0, 0, 0, 0),
-    (367, 'GetLastPlayerAction', 0, 0, 0, 0),
-    (370, 'IsTalkingActivatorActor', 2, 0, 0, 0),
-    (403, 'HasFriendDisposition', 0, 0, 0, 0),
-    (409, 'IsKiller', 2, 0, 0, 0),
-    (410, 'IsKillerObject', 2, 0, 0, 0),
-    (436, 'GetDialogueEmotionValue', 0, 0, 0, 0),
-    (459, 'GetActorCrimePlayerEnemy', 0, 0, 0, 0),
-    (462, 'IsPlayerTagSkill', 1, 0, 0, 0),
-    (464, 'IsPlayerGrabbedRef', 1, 0, 0, 0),
-    (478, 'GetThreatRatio', 2, 0, 0, 0),
-    (489, 'GetConcussed', 0, 0, 0, 0),
-    (496, 'GetKillingBlowLimb', 0, 0, 0, 0),
-    (518, 'GetVATSRightAreaFree', 1, 0, 0, 0),
-    (519, 'GetVATSLeftAreaFree', 1, 0, 0, 0),
-    (520, 'GetVATSBackAreaFree', 1, 0, 0, 0),
-    (521, 'GetVATSFrontAreaFree', 1, 0, 0, 0),
-    (525, 'GetVATSRightTargetVisible', 1, 0, 0, 0),
-    (526, 'GetVATSLeftTargetVisible', 1, 0, 0, 0),
-    (527, 'GetVATSBackTargetVisible', 1, 0, 0, 0),
-    (528, 'GetVATSFrontTargetVisible', 1, 0, 0, 0),
-    (531, 'IsInCriticalStage', 1, 0, 0, 0),
-    (533, 'GetXPForNextLevel', 0, 0, 0, 0),
-    (555, 'GetSpellUsageNum', 2, 0, 0, 0),
-    (557, 'GetActorsInHigh', 0, 0, 0, 0),
-    (558, 'HasLoaded3D', 0, 0, 0, 0),
-    (574, 'GetReputationPct', 2, 1, 0, 0),
-    (607, 'ChallengeLocked', 2, 0, 0, 0),
-    (614, 'GetChallengeCompleted', 2, 0, 0, 0),
-    (619, 'IsAlwaysHardcore', 0, 0, 0, 0),
-
-    # extended by NVSE
-    (1024, 'GetNVSEVersion', 0, 0, 0, 0),
-    (1025, 'GetNVSERevision', 0, 0, 0, 0),
-    (1213, 'GetNVSEBeta', 0, 0, 0, 0),
-    (1082, 'IsKeyPressed', 1, 0, 0, 0),
-    (1166, 'IsControlPressed', 1, 0, 0, 0),
-    (1028, 'GetWeight', 2, 0, 0, 0),
-    (1165, 'GetWeaponHasScope', 0, 0, 0, 0),
+      
+#--Mergeable record types
+mergeClasses = (
+    MreActi, MreAlch, MreAmmo, MreAnio, MreAppa, MreArmo, MreBook, MreBsgn, MreClas,
+    MreClot, MreCont, MreCrea, MreDoor, MreEfsh, MreEnch, MreEyes, MreFact, MreFlor, MreFurn,
+    MreGlob, MreGras, MreHair, MreIngr, MreKeym, MreLigh, MreLscr, MreLvlc, MreLvli,
+    MreLvsp, MreMgef, MreMisc, MreNpc,  MrePack, MreQust, MreRace, MreScpt, MreSgst,
+    MreSlgm, MreSoun, MreSpel, MreStat, MreTree, MreWatr, MreWeap, MreWthr,
+    MreClmt, MreCsty, MreIdle, MreLtex, MreRegn, MreSbsp, MreSkil,
+    MreTxst, MreMicn, MreFlst, MreLvln, MrePerk, MreExpl, MreIpct, MreIpds, MreProj,
+    MreDebr, MreImad, MreMstt, MreNote, MreTerm, MreAvif, MreEczn, MreBptd, MreVtyp,
+    MreMusc, MrePwat, MreAspc, MreHdpt, MreDobj, MreIdlm, MreArma, MreTact,
+    MreImod, MreRepu, MreRcpe, MreRcct, MreChip, MreCsno, MreLsct, MreMset, MreAloc, MreChal,
+    MreAmef, MreCcrd, MreCmny, MreCdck, MreDehy, MreHung, MreSlpd,
     )
-
-allConditions = set(entry[0] for entry in conditionFunctionData)
-fid1Conditions = set(entry[0] for entry in conditionFunctionData if entry[2] == 2)
-fid2Conditions = set(entry[0] for entry in conditionFunctionData if entry[3] == 2)
-fid3Conditions = set(entry[0] for entry in conditionFunctionData if entry[4] == 2)
-fid4Conditions = set(entry[0] for entry in conditionFunctionData if entry[5] == 2)
-
-# Magic Info ------------------------------------------------------------------
-weaponTypes = (
-    _('Big gun'),
-    _('Energy'),
-    _('Small gun'),
-    _('Melee'),
-    _('Unarmed'),
-    _('Thrown'),
-    _('Mine'),
-    )
- 
-#--Plugin format stuff
-class esp:
-    #--Valid ESM/ESP header versions
-    validHeaderVersions = (1.32)
-    
-    recordTypes = set(topTypes + 'GRUP,TES4,ROAD,REFR,ACHR,ACRE,PGRD,LAND,INFO,PGRE,NAVM'.split(','))
-    
+  
 def init():
     # Due to a bug with py2exe, 'reload' doesn't function properly.  Instead of
     # re-executing all lines within the module, it acts like another 'import'
