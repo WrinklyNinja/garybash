@@ -211,10 +211,37 @@ allTags = sorted(('Body-F', 'Body-M', 'Body-Size-M', 'Body-Size-F', 'C.Climate',
                   'NPC.Race','Actors.Skeleton', 'NpcFacesForceFullImport', 'MustBeActiveIfImported',
                   'Deflst', 'Destructible'))
 
-   
+     
+    
 # Installer -------------------------------------------------------------------
 # ensure all path strings are prefixed with 'r' to avoid interpretation of
-# accidental escape sequences
+#   accidental escape sequences
+wryeBashDataFiles = set((
+    r'Bashed Patch.esp',
+    r'Bashed Patch, 0.esp',
+    r'Bashed Patch, 1.esp',
+    r'Bashed Patch, 2.esp',
+    r'Bashed Patch, 3.esp',
+    r'Bashed Patch, 4.esp',
+    r'Bashed Patch, 5.esp',
+    r'Bashed Patch, 6.esp',
+    r'Bashed Patch, 7.esp',
+    r'Bashed Patch, 8.esp',
+    r'Bashed Patch, 9.esp',
+    r'Bashed Patch, CBash.esp',
+    r'Bashed Patch, Python.esp',
+    r'Bashed Patch, FCOM.esp',
+    r'Bashed Patch, Warrior.esp',
+    r'Bashed Patch, Thief.esp',
+    r'Bashed Patch, Mage.esp',
+    r'Bashed Patch, Test.esp',
+    r'ArchiveInvalidationInvalidated!.bsa'
+    r'Fallout - AI!.bsa'
+    ))
+wryeBashDataDirs = set((
+    r'Bash Patches',
+    r'INI Tweaks'
+    ))
 ignoreDataFiles = set((
 #    r'FOSE\Plugins\Construction Set Extender.dll',
 #    r'FOSE\Plugins\Construction Set Extender.ini'
@@ -222,7 +249,7 @@ ignoreDataFiles = set((
 ignoreDataDirs = set((
 #    r'FOSE\Plugins\ComponentDLLs\CSE',
     r'LSData'
-    ))
+    ))    
     
 # Tes3 Group/Top Types -------------------------------------------------------------
 
@@ -1337,7 +1364,24 @@ conditionFunctionData = ( #--0: no param; 1: int param; 2: formid param
     (1028, 'GetWeight', 2, 0, 0, 0),
     (1165, 'GetWeaponHasScope', 0, 0, 0, 0),
     )
+
+allConditions = set(entry[0] for entry in conditionFunctionData)
+fid1Conditions = set(entry[0] for entry in conditionFunctionData if entry[2] == 2)
+fid2Conditions = set(entry[0] for entry in conditionFunctionData if entry[3] == 2)
+fid3Conditions = set(entry[0] for entry in conditionFunctionData if entry[4] == 2)
+fid4Conditions = set(entry[0] for entry in conditionFunctionData if entry[5] == 2)
     
+# Magic Info ------------------------------------------------------------------
+weaponTypes = (
+    _('Big gun'),
+    _('Energy'),
+    _('Small gun'),
+    _('Melee'),
+    _('Unarmed'),
+    _('Thrown'),
+    _('Mine'),
+    )
+ 
 namesTypes = set((
         'ALCH', 'AMMO', 'APPA', 'ARMO', 'BOOK', 'CLAS', 'CLOT', 'CONT', 'CREA', 'DOOR',
         'EYES', 'FACT', 'FLOR', 'HAIR', 'INGR', 'KEYM', 'LIGH', 'MISC', 'NOTE', 'NPC_',
@@ -1409,6 +1453,153 @@ statsHeaders = (
             _('Critical Damage'), _('Crit % Mult'))) + '"\n')),
         )
 
+# Race Info -------------------------------------------------------------------
+raceNames = {
+    0x000019 : _('Caucasian'),
+    0x0038e5 : _('Hispanic'),
+    0x0038e6 : _('Asian'),
+    0x003b3e : _('Ghoul'),
+    0x00424a : _('AfricanAmerican'),
+    0x0042be : _('AfricanAmerican Child'),
+    0x0042bf : _('AfricanAmerican Old'),
+    0x0042c0 : _('Asian Child'),
+    0x0042c1 : _('Asian Old'),
+    0x0042c2 : _('Caucasian Child'),
+    0x0042c3 : _('Caucasian Old'),
+    0x0042c4 : _('Hispanic Child'),
+    0x0042c5 : _('Hispanic Old'),
+    0x04bb8d : _('Caucasian Raider'),
+    0x04bf70 : _('Hispanic Raider'),
+    0x04bf71 : _('Asian Raider'),
+    0x04bf72 : _('AfricanAmerican Raider'),
+    0x0987dc : _('Hispanic Old Aged'),
+    0x0987dd : _('Asian Old Aged'),
+    0x0987de : _('AfricanAmerican Old Aged'),
+    0x0987df : _('Caucasian Old Aged'),
+    }
+
+raceShortNames = {
+    0x000019 : 'Cau',
+    0x0038e5 : 'His',
+    0x0038e6 : 'Asi',
+    0x003b3e : 'Gho',
+    0x00424a : 'Afr',
+    0x0042be : 'AfC',
+    0x0042bf : 'AfO',
+    0x0042c0 : 'AsC',
+    0x0042c1 : 'AsO',
+    0x0042c2 : 'CaC',
+    0x0042c3 : 'CaO',
+    0x0042c4 : 'HiC',
+    0x0042c5 : 'HiO',
+    0x04bb8d : 'CaR',
+    0x04bf70 : 'HiR',
+    0x04bf71 : 'AsR',
+    0x04bf72 : 'AfR',
+    0x0987dc : 'HOA',
+    0x0987dd : 'AOA',
+    0x0987de : 'FOA',
+    0x0987df : 'COA',
+    }
+           
+raceHairMale = {
+    0x000019 : 0x014b90, #--Cau
+    0x0038e5 : 0x0a9d6f, #--His
+    0x0038e6 : 0x014b90, #--Asi
+    0x003b3e : None, #--Gho
+    0x00424a : 0x0306be, #--Afr
+    0x0042be : 0x060232, #--AfC
+    0x0042bf : 0x0306be, #--AfO
+    0x0042c0 : 0x060232, #--AsC
+    0x0042c1 : 0x014b90, #--AsO
+    0x0042c2 : 0x060232, #--CaC
+    0x0042c3 : 0x02bfdb, #--CaO
+    0x0042c4 : 0x060232, #--HiC
+    0x0042c5 : 0x02ddee, #--HiO
+    0x04bb8d : 0x02bfdb, #--CaR
+    0x04bf70 : 0x02bfdb, #--HiR
+    0x04bf71 : 0x02bfdb, #--AsR
+    0x04bf72 : 0x0306be, #--AfR
+    0x0987dc : 0x0987da, #--HOA
+    0x0987dd : 0x0987da, #--AOA
+    0x0987de : 0x0987d9, #--FOA
+    0x0987df : 0x0987da, #--COA
+    }
+ 
+raceHairFemale = {
+    0x000019 : 0x05dc6b, #--Cau
+    0x0038e5 : 0x05dc76, #--His
+    0x0038e6 : 0x022e50, #--Asi
+    0x003b3e : None, #--Gho
+    0x00424a : 0x05dc78, #--Afr
+    0x0042be : 0x05a59e, #--AfC
+    0x0042bf : 0x072e39, #--AfO
+    0x0042c0 : 0x05a5a3, #--AsC
+    0x0042c1 : 0x072e39, #--AsO
+    0x0042c2 : 0x05a59e, #--CaC
+    0x0042c3 : 0x072e39, #--CaO
+    0x0042c4 : 0x05a59e, #--HiC
+    0x0042c5 : 0x072e39, #--HiO
+    0x04bb8d : 0x072e39, #--CaR
+    0x04bf70 : 0x072e39, #--HiR
+    0x04bf71 : 0x072e39, #--AsR
+    0x04bf72 : 0x072e39, #--AfR
+    0x0987dc : 0x044529, #--HOA
+    0x0987dd : 0x044529, #--AOA
+    0x0987de : 0x044529, #--FOA
+    0x0987df : 0x044529, #--COA
+    }
+ 
+# Default Eyes/Hair -----------------------------------------------------------
+#standardEyes = [ob(x) for x in (0x27306,0x27308,0x27309)] + [cobl(x) for x in (0x000821, 0x000823, 0x000825, 0x000828, 0x000834, 0x000837, 0x000839, 0x00084F, )]
+standardEyes = [ob(x) for x in (0x4252,0x4253,0x4254,0x4255,0x4256)]
+ 
+defaultEyes = {
+    #--fallout3.esm
+    ob(0x000019): #--Caucasian
+        standardEyes,
+    ob(0x0038e5): #--Hispanic
+        standardEyes,
+    ob(0x0038e6): #--Asian
+        standardEyes,
+    ob(0x003b3e): #--Ghoul
+        [ob(0x35e4f)],
+    ob(0x00424a): #--AfricanAmerican
+        standardEyes,
+    ob(0x0042be): #--AfricanAmerican Child
+        standardEyes,
+    ob(0x0042bf): #--AfricanAmerican Old
+        standardEyes,
+    ob(0x0042c0): #--Asian Child
+        standardEyes,
+    ob(0x0042c1): #--Asian Old
+        standardEyes,
+    ob(0x0042c2): #--Caucasian Child
+        standardEyes,
+    ob(0x0042c3): #--Caucasian Old
+        standardEyes,
+    ob(0x0042c4): #--Hispanic Child
+        standardEyes,
+    ob(0x0042c5): #--Hispanic Old
+        standardEyes,
+    ob(0x04bb8d): #--Caucasian Raider
+        [ob(0x4cb10)],
+    ob(0x04bf70): #--Hispanic Raider
+        [ob(0x4cb10)],
+    ob(0x04bf71): #--Asian Raider
+        [ob(0x4cb10)],
+    ob(0x04bf72): #--AfricanAmerican Raider
+        [ob(0x4cb10)],
+    ob(0x0987dc): #--Hispanic Old Aged
+        standardEyes,
+    ob(0x0987dd): #--Asian Old Aged
+        standardEyes,
+    ob(0x0987de): #--AfricanAmerican Old Aged
+        standardEyes,
+    ob(0x0987df): #--Caucasian Old Aged
+        standardEyes,
+    }
+  
 #--Mergeable record types
 mergeClasses = (
     MreActi, MreAlch, MreAmmo, MreAnio, MreAppa, MreArmo, MreBook, MreBsgn, MreClas,
@@ -1426,6 +1617,8 @@ mergeClasses = (
 class esp:
     #--Valid ESM/ESP header versions
     validHeaderVersions = (0.85)
+    
+    recordTypes = set(topTypes + 'GRUP,TES4,ROAD,REFR,ACHR,ACRE,PGRD,LAND,INFO,PGRE,NAVM'.split(','))
     
 def init():
     # Due to a bug with py2exe, 'reload' doesn't function properly.  Instead of
