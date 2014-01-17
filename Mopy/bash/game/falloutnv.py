@@ -1,18 +1,84 @@
 # -*- coding: utf-8 -*-
+#
+# GPL License and Copyright Notice ============================================
+#  This file is part of Wrye Bash.
+#
+#  Wrye Bash is free software; you can redistribute it and/or
+#  modify it under the terms of the GNU General Public License
+#  as published by the Free Software Foundation; either version 2
+#  of the License, or (at your option) any later version.
+#
+#  Wrye Bash is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with Wrye Bash; if not, write to the Free Software Foundation,
+#  Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#
+#  Wrye Bash copyright (C) 2005-2009 Wrye, 2010-2011 Wrye Bash Team
+#
+# =============================================================================
 
-# Wrye Flash
-# Module for Fallout New Vegas definitions.
-# When Flash decides what game it should run for, it should then import this module as
-# import falloutnv as game
-# All code changes made during the merge reference this game module alias instead of a specific game.
+"""This modules defines static data for use by bush, when
+   Fallout: New Vegas is set at the active game."""
 
-# Where possible, variable names are the same as used in Bash's game-specific python files.
+# Imports ----------------------------------------------------------------------
+from .. import brec
+from ..brec import *
+
+# Util Constants ---------------------------------------------------------------
+#--Null strings (for default empty byte arrays)
+null1 = '\x00'
+null2 = null1*2
+null3 = null1*3
+null4 = null1*4
+
+# Mod Record Elements ----------------------------------------------------------
+#-------------------------------------------------------------------------------
+# Constants
+FID = 'FID' #--Used by MelStruct classes to indicate fid elements.
+
+#--Name of the game
+name = u'Fallout New Vegas'
+
+#--Alternat display name of Wrye Bash when managing this game
+altName = u'Wrye Flash NV'
+
+#--Exe to look for to see if this is the right game
+exe = u'FalloutNV.exe'
+
+#--Registry keys to read to find the install location
+## These are relative to:
+##  HKLM\Software
+##  HKLM\Software\Wow6432Node
+##  HKCU\Software
+##  HKCU\Software\Wow6432Node
+## Example: (u'Bethesda Softworks\\Oblivion',u'Installed Path')
+regInstallKeys = [
+    (u'Bethesda Softworks\\FalloutNV',u'Installed Path')
+    ]
+
+#--Patch information
+## URL to download patches for the main game.
+patchURL = u''
+## Tooltip to display over the URL when displayed
+patchTip = u''
 
 #--URL to the Nexus site for this game
 nexusUrl = u'http://www.newvegasnexus.com'
 nexusName = u'New Vegas Nexus'
 nexusKey = 'bash.installers.openNewVegasNexus'
    
+#--Construction Set information
+class cs:
+    shortName = u'GECK'                  # Abbreviated name
+    longName = u'GECK'                   # Full name
+    exe = u'*DNE*'                   # Executable to run
+    seArgs = u''                     # Argument to pass to the SE to load the CS
+    imageName = u''                  # Image name template for the status bar
+
 #--Script Extender information
 class se:
     shortName = u'NVSE'                      # Abbreviated name
@@ -22,6 +88,87 @@ class se:
     url = u'http://nvse.silverlock.org/'     # URL to download from
     urlTip = u'http://nvse.silverlock.org/'  # Tooltip for mouse over the URL
     
+#--Script Dragon
+class sd:
+    shortName = u''
+    longName = u''
+    installDir = u''
+	
+#--SkyProc Patchers
+    shortName = u''
+    longName = u''
+    installDir = u''
+
+#--Quick shortcut for combining the SE and SD names
+se_sd = u''
+
+#--Graphics Extender information
+class ge:
+    shortName = u''
+    longName = u''
+    ## exe is treated specially here.  If it is a string, then it should
+    ## be the path relative to the root directory of the game
+    ## if it is list, each list element should be an iterable to pass to Path.join
+    ## relative to the root directory of the game.  In this case, each filename
+    ## will be tested in reverse order.  This was required for Oblivion, as the newer
+    ## OBGE has a different filename than the older OBGE
+    exe = u''
+    url = u''
+    urlTip = u''
+
+#--4gb Launcher
+class laa:
+    name = u''           # Display name of the launcher
+    exe = u'*DNE*'       # Executable to run
+    launchesSE = False   # Whether the launcher will automatically launch the SE
+
+# Files BAIN shouldn't skip
+dontSkip = (
+# Nothing so far
+)
+
+#--Folders BAIN should never CRC check in the Data directory
+SkipBAINRefresh = set((
+    # Use lowercase names
+))
+
+#--Some stuff dealing with INI files
+class ini:
+    #--True means new lines are allowed to be added via INI tweaks
+    #  (by default)
+    allowNewLines = False
+
+    #--INI Entry to enable BSA Redirection
+    bsaRedirection = (u'Archive',u'sArchiveList')
+
+#--Save Game format stuff
+class ess:
+    # Save file capabilities
+    canReadBasic = False        # Can read the info needed for the Save Tab display
+    canEditMasters = False      # Can adjust save file masters
+    canEditMore = False         # Advanced editing
+
+    @staticmethod
+    def load(ins,header):
+        """Extract basic info from save file.close
+           At a minimum, this should set the following
+           attrubutes in 'header':
+            pcName
+            pcLevel
+            pcLocation
+            gameDate
+            gameDays
+            gameTicks (seconds*1000)
+            image (ssWidth,ssHeight,ssData)
+            masters
+        """
+        raise Exception('Not implemented')
+
+    @staticmethod
+    def writeMasters(ins,out,header):
+        """Rewrites masters of existing save file."""
+        raise Exception('Not implemented')
+
 #--The main plugin Wrye Bash should look for
 masterFiles = [
     u'FalloutNV.esm',
@@ -33,6 +180,10 @@ iniFiles = [
     u'Fallout_default.ini',
     ]
  
+#-- INI setting used to setup Save Profiles
+## (section,key)
+saveProfilesKey = (u'General',u'SLocalSavePath')
+
 #--Game ESM/ESP/BSA files
 bethDataFiles = set((
     #--Vanilla
@@ -377,8 +528,15 @@ allBethFiles = set((
     r'DLCList.txt',
     ))
 
+#--Plugin files that can't be deactivated
+nonDeactivatableFiles = []
 
-                  
+#--BAIN:
+## These are the allowed default data directories that BAIN can install to
+dataDirs = set()
+## These are additional special directories that BAIN can install to
+dataDirsPlus = set()
+                 
 # Installer -------------------------------------------------------------------
 # ensure all path strings are prefixed with 'r' to avoid interpretation of
 # accidental escape sequences
@@ -412,10 +570,144 @@ ignoreDataFiles = set((
 #    r'NVSE\Plugins\Construction Set Extender.dll',
 #    r'NVSE\Plugins\Construction Set Extender.ini'
     ))
+ignoreDataFilePrefixes = set(())
 ignoreDataDirs = set((
 #    r'NVSE\Plugins\ComponentDLLs\CSE',
     r'LSData'
     ))
+
+#--Plugin format stuff
+class esp:
+    #--Wrye Bash capabilities
+    canBash = False         # Can create Bashed Patches
+    canEditHeader = False   # Can edit basic info in the TES4 record
+    
+    #--Valid ESM/ESP header versions
+    ## These are the valid 'version' numbers for the game file headers
+    validHeaderVersions = (1.32)
+
+    #--Class to use to read the TES4 record
+    ## This is the class name in bosh.py to use for the TES4 record when reading
+    ## Example: 'MreTes4'
+    tes4ClassName = ''
+
+    #--Information about the basic record header
+    class header:
+        format = ''         # Format passed to struct.unpack to unpack the header
+        size = 0            # Size of the record header
+        attrs = tuple()     # List of attributes to set = the return of struct.unpack
+        defaults = tuple()  # Default values for each of the above attributes
+     
+    #--Top types in FalloutNV order.
+    topTypes = ['GMST', 'TXST', 'MICN', 'GLOB', 'CLAS', 'FACT', 'HDPT', 'HAIR', 'EYES',
+        'RACE', 'SOUN', 'ASPC', 'MGEF', 'SCPT', 'LTEX', 'ENCH', 'SPEL', 'ACTI', 'TACT',
+        'TERM', 'ARMO', 'BOOK', 'CONT', 'DOOR', 'INGR', 'LIGH', 'MISC', 'STAT', 'SCOL',
+        'MSTT', 'PWAT', 'GRAS', 'TREE', 'FURN', 'WEAP', 'AMMO', 'NPC_', 'CREA', 'LVLC',
+        'LVLN', 'KEYM', 'ALCH', 'IDLM', 'NOTE', 'PROJ', 'LVLI', 'WTHR', 'CLMT', 'REGN',
+        'NAVI', 'CELL', 'WRLD', 'DIAL', 'QUST', 'IDLE', 'PACK', 'CSTY', 'LSCR', 'ANIO',
+        'WATR', 'EFSH', 'EXPL', 'DEBR', 'IMGS', 'IMAD', 'FLST', 'PERK', 'BPTD', 'ADDN',
+        'COBJ', 'AVIF', 'RADS', 'CAMS', 'CPTH', 'VTYP', 'IPCT', 'IPDS', 'ARMA', 'ECZN',
+        'MESG', 'RGDL', 'DOBJ', 'LGTM', 'MUSC', 'IMOD', 'REPU', 'RCPE', 'RCCT', 'CHIP',
+        'CSNO', 'LSCT', 'MSET', 'ALOC', 'CHAL', 'AMEF', 'CCRD', 'CMNY', 'CDCK', 'DEHY',
+        'HUNG', 'SLPD',
+        # Unused types in falloutNV. (dummy)
+        'SLGM', 'BSGN', 'FLOR', 'SGST', 'CLOT', 'SBSP', 'SKIL', 'LVSP', 'APPA',
+        ]
+    
+    #--Dict mapping 'ignored' top types to un-ignored top types
+    topIgTopTYpes = dict()
+    
+    #--Record Types: all recognized record types (not just the top types)
+    recordTypes = set(topTypes + 'GRUP,TES4,ROAD,REFR,ACHR,ACRE,PGRD,LAND,INFO,PGRE,NAVM'.split(','))
+    
+class RecordHeader(brec.BaseRecordHeader):
+    size = 20 # Size in bytes of a record header
+
+    def __init__(self,recType='TES4',size=0,arg1=0,arg2=0,arg3=0,*extra):
+        self.recType = recType
+        self.size = size
+        # Do some conditional stuff, commonly different variable names
+		# if this is a GRUP header or an actual record
+
+    @staticmethod
+    def unpack(ins):
+        """Returns a RecordHeader object by reading the input stream."""
+        pass
+
+    def pack(self):
+        """Returns the record header packed into a string for writing to file."""
+        pass
+	
+#--The pickle file for this game.  Holds encoded GMST IDs from the big list below
+pklfile = ur'bash\db\FalloutNV_ids.pkl'
+
+#--List of GMST's in the main plugin (Oblivion.esm) that have 0x00000000
+#  as the form id.  Any GMST as such needs it Editor Id listed here.
+gmstEids = ['fPlayerDeathReloadTime','iMapMarkerVisibleDistance','fVanityModeWheelMax','fChase3rdPersonZUnitsPerSecond',
+    'fAutoAimMaxDegreesMiss','iHoursToRespawnCell','fEssentialDeathTime','fJumpHeightMin','fPlayerPipBoyLightTimer',
+    'iAINumberActorsComplexScene','iHackingMaxWords','fGunShellLifetime','fGunShellCameraDistance','fGunDecalCameraDistance',
+    'iDebrisMaxCount','iHackingDumpRate','iHackingInputRate','iHackingOutputRate','iHackingFlashOffDuration',
+    'iHackingFlashOnDuration','iComputersDisplayRateMenus','iComputersDisplayRateNotes','iInventoryAskQuantityAt',
+    'iNumberActorsInCombatPlayer','iNumberActorsAllowedToFollowPlayer','iRemoveExcessDeadCount','iRemoveExcessDeadTotalActorCount',
+    'iRemoveExcessDeadComplexTotalActorCount','iRemoveExcessDeadComplexCount', 'fRemoveExcessDeadTime','fRemoveExcessComplexDeadTime',
+    'iLevItemLevelDifferenceMax','fMoveWeightMax',
+    ]
+ 
+#--Bash Tags supported by this game
+allTags = sorted(('Body-F', 'Body-M', 'Body-Size-M', 'Body-Size-F', 'C.Climate', 'C.Light', 'C.Music', 'C.Name', 'C.RecordFlags',
+                  'C.Owner', 'C.Water','Deactivate', 'Delev', 'Eyes', 'Factions', 'Relations', 'Filter', 'Graphics', 'Hair',
+                  'IIM', 'Invent', 'Names', 'NoMerge', 'NpcFaces', 'R.Relations', 'Relev', 'Scripts', 'ScriptContents', 'Sound',
+                  'Stats', 'Voice-F', 'Voice-M', 'R.Teeth', 'R.Mouth', 'R.Ears', 'R.Head', 'R.Attributes-F',
+                  'R.Attributes-M', 'R.Skills', 'R.Description', 'Roads', 'Actors.Anims',
+                  'Actors.AIData', 'Actors.DeathItem', 'Actors.AIPackages', 'Actors.AIPackagesForceAdd', 'Actors.Stats',
+                  'Actors.ACBS', 'NPC.Class', 'Actors.CombatStyle', 'Creatures.Blood',
+                  'NPC.Race','Actors.Skeleton', 'NpcFacesForceFullImport', 'MustBeActiveIfImported',
+                  'Deflst', 'Destructible', 'WeaponMods'))
+
+#--GLOB record tweaks used by bosh's GmstTweaker
+#  Each entry is a tuple in the following format:
+#    (DisplayText, MouseoverText, GLOB EditorID, Option1, Option2, Option3, ..., OptionN)
+#    -EditorID can be a plain string, or a tuple of multiple Editor IDs.  If it's a tuple,
+#     then Value (below) must be a tuple of equal length, providing values for each GLOB
+#  Each Option is a tuple:
+#    (DisplayText, Value)
+#    - If you enclose DisplayText in brackets like this: _(u'[Default]'), then the patcher
+#      will treat this option as the default value.
+#    - If you use _(u'Custom') as the entry, the patcher will bring up a number input dialog
+#  To make a tweak Enabled by Default, enclose the tuple entry for the tweak in a list, and make
+#  a dictionary as the second list item with {'defaultEnabled':True}.  See the UOP Vampire face
+#  fix for an example of this (in the GMST Tweaks)
+## NOTE: only required if the GmstTweaker has been enabled for this game
+GlobalsTweaks = [
+]
+
+#--GMST record tweaks used by bosh's GmstTweaker
+#  Each entry is a tuple in the following format:
+#    (DisplayText, MouseoverText, GMST EditorID, Option1, Option2, Option3, ..., OptionN)
+#    -EditorID can be a plain string, or a tuple of multiple Editor IDs.  If it's a tuple,
+#     then Value (below) must be a tuple of equal length, providing values for each GMST
+#  Each Option is a tuple:
+#    (DisplayText, Value)
+#    - If you enclose DisplayText in brackets like this: _(u'[Default]'), then the patcher
+#      will treat this option as the default value.
+#    - If you use _(u'Custom') as the entry, the patcher will bring up a number input dialog
+#  To make a tweak Enabled by Default, enclose the tuple entry for the tweak in a list, and make
+#  a dictionary as the second list item with {'defaultEnabled':True}.  See the UOP Vampire face
+#  fix for an example of this (in the GMST Tweaks)
+## NOTE: only required if the GmstTweaker has been enabled for this game
+GmstTweaks = [
+]
+
+#--Patcher available when building a Bashed Patch (refrerenced by class name)
+patchers = (
+)
+
+#--For ListMerger patcher (leveled list patcher)
+listTypes = ()
+
+#--CBash patchers available when building a Bashed Patch
+CBash_patchers = (
+)
 
 # Function Info ---------------------------------------------------------------
 conditionFunctionData = ( #--0: no param; 1: int param; 2: formid param
@@ -696,35 +988,12 @@ weaponTypes = (
     _('Mine'),
     )
    
-#--List of GMST's in the main plugin (Oblivion.esm) that have 0x00000000
-#  as the form id.  Any GMST as such needs it Editor Id listed here.
-gmstEids = ['fPlayerDeathReloadTime','iMapMarkerVisibleDistance','fVanityModeWheelMax','fChase3rdPersonZUnitsPerSecond',
-    'fAutoAimMaxDegreesMiss','iHoursToRespawnCell','fEssentialDeathTime','fJumpHeightMin','fPlayerPipBoyLightTimer',
-    'iAINumberActorsComplexScene','iHackingMaxWords','fGunShellLifetime','fGunShellCameraDistance','fGunDecalCameraDistance',
-    'iDebrisMaxCount','iHackingDumpRate','iHackingInputRate','iHackingOutputRate','iHackingFlashOffDuration',
-    'iHackingFlashOnDuration','iComputersDisplayRateMenus','iComputersDisplayRateNotes','iInventoryAskQuantityAt',
-    'iNumberActorsInCombatPlayer','iNumberActorsAllowedToFollowPlayer','iRemoveExcessDeadCount','iRemoveExcessDeadTotalActorCount',
-    'iRemoveExcessDeadComplexTotalActorCount','iRemoveExcessDeadComplexCount', 'fRemoveExcessDeadTime','fRemoveExcessComplexDeadTime',
-    'iLevItemLevelDifferenceMax','fMoveWeightMax',
-    ]
- 
-#--Bash Tags supported by this game
-allTags = sorted(('Body-F', 'Body-M', 'Body-Size-M', 'Body-Size-F', 'C.Climate', 'C.Light', 'C.Music', 'C.Name', 'C.RecordFlags',
-                  'C.Owner', 'C.Water','Deactivate', 'Delev', 'Eyes', 'Factions', 'Relations', 'Filter', 'Graphics', 'Hair',
-                  'IIM', 'Invent', 'Names', 'NoMerge', 'NpcFaces', 'R.Relations', 'Relev', 'Scripts', 'ScriptContents', 'Sound',
-                  'Stats', 'Voice-F', 'Voice-M', 'R.Teeth', 'R.Mouth', 'R.Ears', 'R.Head', 'R.Attributes-F',
-                  'R.Attributes-M', 'R.Skills', 'R.Description', 'Roads', 'Actors.Anims',
-                  'Actors.AIData', 'Actors.DeathItem', 'Actors.AIPackages', 'Actors.AIPackagesForceAdd', 'Actors.Stats',
-                  'Actors.ACBS', 'NPC.Class', 'Actors.CombatStyle', 'Creatures.Blood',
-                  'NPC.Race','Actors.Skeleton', 'NpcFacesForceFullImport', 'MustBeActiveIfImported',
-                  'Deflst', 'Destructible', 'WeaponMods'))
-
 namesTypes = set((
         'ALCH', 'AMMO', 'APPA', 'ARMO', 'BOOK', 'CLAS', 'CLOT', 'CONT', 'CREA', 'DOOR',
         'EYES', 'FACT', 'FLOR', 'HAIR', 'INGR', 'KEYM', 'LIGH', 'MISC', 'NOTE', 'NPC_',
         'RACE', 'SPEL', 'TERM', 'WEAP', 'ACTI', 'TACT',
         'CMNY', 'CCRD', 'IMOD', 'REPU', 'RCPE', 'RCCT', 'CHIP', 'CSNO'))
-       
+pricesTypes = {}      
 statsTypes = {
         'ALCH':('eid', 'weight', 'value'),
         'AMMO':('eid', 'weight', 'value', 'speed', 'clipRounds','projPerShot'),
@@ -892,30 +1161,7 @@ raceHairFemale = {
     0x0987de : 0x044529, #--FOA
     0x0987df : 0x044529, #--COA
     }
- 
-#--Plugin format stuff
-class esp:
-    #--Valid ESM/ESP header versions
-    validHeaderVersions = (1.32)
-     
-    #--Top types in FalloutNV order.
-    topTypes = ['GMST', 'TXST', 'MICN', 'GLOB', 'CLAS', 'FACT', 'HDPT', 'HAIR', 'EYES',
-        'RACE', 'SOUN', 'ASPC', 'MGEF', 'SCPT', 'LTEX', 'ENCH', 'SPEL', 'ACTI', 'TACT',
-        'TERM', 'ARMO', 'BOOK', 'CONT', 'DOOR', 'INGR', 'LIGH', 'MISC', 'STAT', 'SCOL',
-        'MSTT', 'PWAT', 'GRAS', 'TREE', 'FURN', 'WEAP', 'AMMO', 'NPC_', 'CREA', 'LVLC',
-        'LVLN', 'KEYM', 'ALCH', 'IDLM', 'NOTE', 'PROJ', 'LVLI', 'WTHR', 'CLMT', 'REGN',
-        'NAVI', 'CELL', 'WRLD', 'DIAL', 'QUST', 'IDLE', 'PACK', 'CSTY', 'LSCR', 'ANIO',
-        'WATR', 'EFSH', 'EXPL', 'DEBR', 'IMGS', 'IMAD', 'FLST', 'PERK', 'BPTD', 'ADDN',
-        'COBJ', 'AVIF', 'RADS', 'CAMS', 'CPTH', 'VTYP', 'IPCT', 'IPDS', 'ARMA', 'ECZN',
-        'MESG', 'RGDL', 'DOBJ', 'LGTM', 'MUSC', 'IMOD', 'REPU', 'RCPE', 'RCCT', 'CHIP',
-        'CSNO', 'LSCT', 'MSET', 'ALOC', 'CHAL', 'AMEF', 'CCRD', 'CMNY', 'CDCK', 'DEHY',
-        'HUNG', 'SLPD',
-        # Unused types in falloutNV. (dummy)
-        'SLGM', 'BSGN', 'FLOR', 'SGST', 'CLOT', 'SBSP', 'SKIL', 'LVSP', 'APPA',
-        ]
-    
-    recordTypes = set(topTypes + 'GRUP,TES4,ROAD,REFR,ACHR,ACRE,PGRD,LAND,INFO,PGRE,NAVM'.split(','))
-      
+   
 #------------------------------------------------------------------------------
 class MreActi(MelRecord):
     """Activator record."""
@@ -2366,6 +2612,11 @@ mergeClasses = (
     MreAmef, MreCcrd, MreCmny, MreCdck, MreDehy, MreHung, MreSlpd,
     )
   
+#--Extra read classes: these record types will always be loaded, even if patchers
+#  don't need them directly (for example, for MGEF info)
+readClasses = ()
+writeClasses = ()
+
 def init():
     # Due to a bug with py2exe, 'reload' doesn't function properly.  Instead of
     # re-executing all lines within the module, it acts like another 'import'
