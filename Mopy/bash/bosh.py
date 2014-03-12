@@ -3701,6 +3701,8 @@ class MreNpc(MreActor):
         else:
             self.model.modPath = r"Characters\_Male\skeleton.nif"
         #--FNAM
+		# Needs Updating for Fallout New Vegas
+		# American
         fnams = {
             0x23fe9 : 0x3cdc ,#--Argonian
             0x224fc : 0x1d48 ,#--Breton
