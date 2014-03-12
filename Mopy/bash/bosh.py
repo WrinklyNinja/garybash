@@ -2357,7 +2357,7 @@ class MreArmo(MelRecord):
         MelStruct('BMDT','=2I',(_flags,'bipedFlags',0L),(_generalFlags,'generalFlags',0L)),
         MelModel('maleBody'),
         MelModel('maleWorld',2),
-        MelString('ICON','maleLargeIconPath'),
+        MelString('ICON','maleIconPath'),
         MelString('MICO','maleSmallIconPath'),
         MelModel('femaleBody',3),
         MelModel('femaleWorld',4),
@@ -5920,7 +5920,7 @@ class MreArma(MelRecord):
         MelStruct('BMDT','=2I',(_flags,'bipedFlags',0L),(_generalFlags,'generalFlags',0L)),
         MelModel('maleBody'),
         MelModel('maleWorld',2),
-        MelString('ICON','maleLargeIconPath'),
+        MelString('ICON','maleIconPath'),
         MelString('MICO','maleSmallIconPath'),
         MelModel('femaleBody',3),
         MelModel('femaleWorld',4),
@@ -17685,8 +17685,8 @@ class CompleteItemData:
         self.type_attrs = {
             'ALCH':('eid', 'full', 'weight', 'value', 'iconPath', 'smallIconPath'),
             'AMMO':('eid', 'full', 'weight', 'value', 'speed', 'clipRounds', 'projPerShot', 'iconPath', 'smallIconPath'),
-            'ARMO':('eid', 'full', 'weight', 'value', 'health', 'ar', 'dt', 'maleLargeIconPath', 'maleSmallIconPath', 'femaleIconPath', 'femaleSmallIconPath'),
-            'ARMA':('eid', 'full', 'weight', 'value', 'health', 'ar', 'dt', 'maleLargeIconPath', 'maleSmallIconPath', 'femaleIconPath', 'femaleSmallIconPath'),
+            'ARMO':('eid', 'full', 'weight', 'value', 'health', 'ar', 'dt', 'maleIconPath', 'maleSmallIconPath', 'femaleIconPath', 'femaleSmallIconPath'),
+            'ARMA':('eid', 'full', 'weight', 'value', 'health', 'ar', 'dt', 'maleIconPath', 'maleSmallIconPath', 'femaleIconPath', 'femaleSmallIconPath'),
             'BOOK':('eid', 'full', 'weight', 'value', 'iconPath', 'smallIconPath'),
             'INGR':('eid', 'full', 'weight', 'value', 'iconPath'),
             'KEYM':('eid', 'full', 'weight', 'value', 'iconPath', 'smallIconPath'),
@@ -22682,7 +22682,7 @@ class GraphicsPatcher(ImportPatcher):
         for recClass in (MreWeap,):
             recAttrs_class[recClass] = ('iconPath','smallIconPath','model','shellCasingModel','scopeModel','worldModel','firstPersonModel','animationType','gripAnimation','reloadAnimation','modelWithMods','firstPersonModelWithMods')
         for recClass in (MreArmo, MreArma, MreClot):
-            recAttrs_class[recClass] = ('maleBody','maleWorld','maleLargeIconPath','maleSmallIconPath','femaleBody','femaleWorld','femaleIconPath','femaleSmallIconPath','flags')
+            recAttrs_class[recClass] = ('maleBody','maleWorld','maleIconPath','maleSmallIconPath','femaleBody','femaleWorld','femaleIconPath','femaleSmallIconPath','flags')
         for recClass in (MreCrea,):
             recAttrs_class[recClass] = ('model','bodyParts','nift_p','bodyPartData','impactDataset')
         for recClass in (MreMgef,):
