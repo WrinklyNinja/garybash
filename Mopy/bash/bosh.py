@@ -17683,15 +17683,15 @@ class CompleteItemData:
         """Initialize."""
         self.type_stats = {'ALCH':{},'AMMO':{},'ARMO':{},'ARMA':{},'BOOK':{},'INGR':{},'KEYM':{},'LIGH':{},'MISC':{},'WEAP':{}}
         self.type_attrs = {
-            'ALCH':('eid', 'full', 'weight', 'value', 'largeIconPath', 'smallIconPath'),
-            'AMMO':('eid', 'full', 'weight', 'value', 'speed', 'clipRounds', 'projPerShot', 'largeIconPath', 'smallIconPath'),
+            'ALCH':('eid', 'full', 'weight', 'value', 'iconPath', 'smallIconPath'),
+            'AMMO':('eid', 'full', 'weight', 'value', 'speed', 'clipRounds', 'projPerShot', 'iconPath', 'smallIconPath'),
             'ARMO':('eid', 'full', 'weight', 'value', 'health', 'ar', 'dt', 'maleLargeIconPath', 'maleSmallIconPath', 'femaleLargeIconPath', 'femaleSmallIconPath'),
             'ARMA':('eid', 'full', 'weight', 'value', 'health', 'ar', 'dt', 'maleLargeIconPath', 'maleSmallIconPath', 'femaleLargeIconPath', 'femaleSmallIconPath'),
-            'BOOK':('eid', 'full', 'weight', 'value', 'largeIconPath', 'smallIconPath'),
+            'BOOK':('eid', 'full', 'weight', 'value', 'iconPath', 'smallIconPath'),
             'INGR':('eid', 'full', 'weight', 'value', 'iconPath'),
-            'KEYM':('eid', 'full', 'weight', 'value', 'largeIconPath', 'smallIconPath'),
+            'KEYM':('eid', 'full', 'weight', 'value', 'iconPath', 'smallIconPath'),
             'LIGH':('eid', 'full', 'weight', 'value', 'duration','iconPath'),
-            'MISC':('eid', 'full', 'weight', 'value', 'largeIconPath', 'smallIconPath'),
+            'MISC':('eid', 'full', 'weight', 'value', 'iconPath', 'smallIconPath'),
             'WEAP':('eid', 'full', 'weight', 'value', 'health', 'damage','clipsize',
                     'animationMultiplier','reach','ammoUse','minSpread','spread','sightFov','baseVatsToHitChance','projectileCount',
                     'minRange','maxRange','animationAttackMultiplier','fireRate','overrideActionPoint','rumbleLeftMotorStrength',
@@ -17701,7 +17701,7 @@ class CompleteItemData:
                     'strengthReq','regenRate','killImpulse','impulseDist','skillReq',
                     'criticalDamage','criticalMultiplier',
                     'vatsSkill','vatsDamMult','vatsAp',
-                    'largeIconPath', 'smallIconPath'),
+                    'iconPath', 'smallIconPath'),
             }
         self.aliases = aliases or {} #--For aliasing mod fulls
 
@@ -22668,19 +22668,19 @@ class GraphicsPatcher(ImportPatcher):
         for recClass in (MreLigh,):
             recAttrs_class[recClass] = ('iconPath','model')
         for recClass in (MreMicn,):
-            recAttrs_class[recClass] = ('largeIconPath','smallIconPath')
+            recAttrs_class[recClass] = ('iconPath','smallIconPath')
         for recClass in (MreRepu,):
-            recAttrs_class[recClass] = ('largeIconPath','smallIconPath')
+            recAttrs_class[recClass] = ('iconPath','smallIconPath')
         for recClass in (MreCsno,):
             recAttrs_class[recClass] = ('chipModels','slotMachineModel','blackjackTableModel','rouletteTableModel','slotReelTextures','blackjackDecks')
         for recClass in (MreAlch, MreAmmo, MreAppa, MreBook, MreIngr, MreKeym, MreMisc, MreSgst, MreSlgm, MreTree, MreCmny, MreImod, MreChip):
-            recAttrs_class[recClass] = ('largeIconPath','smallIconPath','model')
+            recAttrs_class[recClass] = ('iconPath','smallIconPath','model')
         for recClass in (MreNote,):
-            recAttrs_class[recClass] = ('largeIconPath','smallIconPath','model','texture')
+            recAttrs_class[recClass] = ('iconPath','smallIconPath','model','texture')
         for recClass in (MreCcrd,):
-            recAttrs_class[recClass] = ('largeIconPath','smallIconPath','model','textureFace','textureBack')
+            recAttrs_class[recClass] = ('iconPath','smallIconPath','model','textureFace','textureBack')
         for recClass in (MreWeap,):
-            recAttrs_class[recClass] = ('largeIconPath','smallIconPath','model','shellCasingModel','scopeModel','worldModel','firstPersonModel','animationType','gripAnimation','reloadAnimation','modelWithMods','firstPersonModelWithMods')
+            recAttrs_class[recClass] = ('iconPath','smallIconPath','model','shellCasingModel','scopeModel','worldModel','firstPersonModel','animationType','gripAnimation','reloadAnimation','modelWithMods','firstPersonModelWithMods')
         for recClass in (MreArmo, MreArma, MreClot):
             recAttrs_class[recClass] = ('maleBody','maleWorld','maleLargeIconPath','maleSmallIconPath','femaleBody','femaleWorld','femaleLargeIconPath','femaleSmallIconPath','flags')
         for recClass in (MreCrea,):
