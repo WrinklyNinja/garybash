@@ -21,7 +21,7 @@
 #
 # =============================================================================
 
-"""This module defines provides objects and functions for working with Fallout3
+"""This module defines provides objects and functions for working with FalloutNV
 files and environment. It does not provide interface functions which are instead
 provided by separate modules: bish for CLI and bash/basher for GUI."""
 
@@ -109,6 +109,7 @@ question = False
 
 #--File Singletons
 falloutIni = None
+falloutDefaultIni = None
 falloutPrefsIni = None
 modInfos  = None  #--ModInfos singleton
 saveInfos = None #--SaveInfos singleton
@@ -148,7 +149,7 @@ allTags = sorted(('Body-F', 'Body-M', 'Body-Size-M', 'Body-Size-F', 'C.Climate',
                   'Actors.AIData', 'Actors.DeathItem', 'Actors.AIPackages', 'Actors.AIPackagesForceAdd', 'Actors.Stats',
                   'Actors.ACBS', 'NPC.Class', 'Actors.CombatStyle', 'Creatures.Blood',
                   'NPC.Race','Actors.Skeleton', 'NpcFacesForceFullImport', 'MustBeActiveIfImported',
-                  'Deflst', 'Destructible'))
+                  'Deflst', 'Destructible', 'WeaponMods'))
 
 allTagsSet = set(allTags)
 oldTags = sorted(('Merge',))
@@ -352,7 +353,7 @@ reCsvExt  = re.compile(r'\.csv$',re.I)
 reINIExt  = re.compile(r'\.ini$',re.I)
 reQuoted  = re.compile(r'^"(.*)"$')
 reGroupHeader = re.compile(r'^(\+\+|==)')
-reFallout3Nexus = re.compile(r'(.*?)(?:-(\d{4,6})(?:\.tessource)?(?:-bain)?(?:-\d{0,6})?(?:-\d{0,6})?(?:-\d{0,6})?(?:\w)?)?(\.7z|\.zip|\.rar|\.7z\.001|)$',re.I)
+reNewVegasNexus = re.compile(r'(.*?)(?:-(\d{4,6})(?:\.tessource)?(?:-bain)?(?:-\d{0,6})?(?:-\d{0,6})?(?:-\d{0,6})?(?:\w)?)?(\.7z|\.zip|\.rar|\.7z\.001|)$',re.I)
 reTESA = re.compile(r'(.*?)(?:-(\d{1,6})(?:\.tessource)?(?:-bain)?)?(\.7z|\.zip|\.rar|)$',re.I)
 reSplitOnNonAlphaNumeric = re.compile(r'\W+')
 
@@ -2212,8 +2213,10 @@ class MreActi(MelRecord):
         MelDestructible(),
         MelFid('SNAM','soundLooping'),
         MelFid('VNAM','soundActivation'),
+        MelFid('INAM','radioTemplate'),
         MelFid('RNAM','radioStation'),
         MelFid('WNAM','waterType'),
+        MelString('XATO','activationPrompt'),
         )
     __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
 
@@ -2249,6 +2252,22 @@ class MreAmmo(MelRecord):
     """Ammo (arrow) record."""
     classType = 'AMMO'
     _flags = Flags(0L,Flags.getNames('notNormalWeapon'))
+    class MelAmmoDat2(MelStruct):
+        """Handle older trucated DAT2 for AMMO subrecord."""
+        def loadData(self,record,ins,type,size,readId):
+            if size == 20:
+                MelStruct.loadData(self,record,ins,type,size,readId)
+                return
+            elif size == 12:
+                unpacked = ins.unpack('IIf',size,readId)
+            else:
+                raise "Unexpected size encountered for AMMO:DAT2 subrecord: %s" % size
+            unpacked += self.defaults[len(unpacked):]
+            setter = record.__setattr__
+            for attr,value,action in zip(self.attrs,unpacked,self.actions):
+                if callable(action): value = action(value)
+                setter(attr,value)
+            if self._debug: print unpacked
     melSet = MelSet(
         MelString('EDID','eid'),
         MelStruct('OBND','=6h',
@@ -2258,11 +2277,15 @@ class MreAmmo(MelRecord):
         MelModel(),
         MelString('ICON','largeIconPath'),
         MelString('MICO','smallIconPath'),
+        MelFid('SCRI','script'),
         MelDestructible(),
         MelFid('YNAM','soundPickup'),
         MelFid('ZNAM','soundDrop'),
         MelStruct('DATA','fB3sIB','speed',(_flags,'flags',0L),('unused1',null3),'value','clipRounds'),
+        MelAmmoDat2('DAT2','IIfIf','projPerShot',(FID,'projectile',0L),'weight',(FID,'consumedAmmo'),'consumedPercentage'),
         MelString('ONAM','shortName'),
+        MelString('QNAM','abbrev'),
+        MelFids('RCIL','effects'),
         )
     __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
 
@@ -2305,6 +2328,24 @@ class MreArmo(MelRecord):
         'alcohol','bigGuns','bodyWear','chems','energyWeapons','food','handWear','headWear',
         'meleeWeapons','mine','none','smallGuns','stimpack','thrownWeapons','unarmedWeapon'
     ))
+
+    class MelArmoDnam(MelStruct):
+        """Handle older trucated DNAM for ARMO subrecord."""
+        def loadData(self,record,ins,type,size,readId):
+            if size == 12:
+                MelStruct.loadData(self,record,ins,type,size,readId)
+                return
+            elif size == 4:
+                unpacked = ins.unpack('=HH',size,readId)
+            else:
+                raise "Unexpected size encountered for ARMO subrecord: %s" % size
+            unpacked += self.defaults[len(unpacked):]
+            setter = record.__setattr__
+            for attr,value,action in zip(self.attrs,unpacked,self.actions):
+                if callable(action): value = action(value)
+                setter(attr,value)
+            if self._debug: print unpacked, record.flags.getTrueAttrs()
+
     melSet = MelSet(
         MelString('EDID','eid'),
         MelStruct('OBND','=6h',
@@ -2330,7 +2371,10 @@ class MreArmo(MelRecord):
         MelFid('YNAM','soundPickUp'),
         MelFid('ZNAM','soundDrop'),
         MelStruct('DATA','=IIf','value','health','weight'),
-        MelStruct('DNAM','=HH','ar','flags'), # AR is multiplied by 100.
+        MelArmoDnam('DNAM','=HHfI','ar','flags','dt',('unknown',0L)), # AR is multiplied by 100.
+        MelStruct('BNAM','I',('overridesAnimationSound',0L)),
+        MelStructs('SNAM','IB3sI','animationSounds',(FID,'sound'),'chance',('unused','\xb7\xe7\x0b'),'type'),
+        MelFid('TNAM','animationSoundsTemplate'),
         )
     __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
 
@@ -2558,6 +2602,7 @@ class MreCont(MelRecord):
         MelStruct('DATA','=Bf',(_flags,'flags',0L),'weight'),
         MelFid('SNAM','soundOpen'),
         MelFid('QNAM','soundClose'),
+        MelFid('RNAM','soundRandomLooping'),
         )
     __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
 
@@ -2760,12 +2805,65 @@ class MreCsty(MelRecord):
 class MreDial(MelRecord):
     """Dialog record."""
     classType = 'DIAL'
+    class MelDialData(MelStruct):
+        """Handle older trucated DATA for DIAL subrecord."""
+        def loadData(self,record,ins,type,size,readId):
+            if size == 2:
+                MelStruct.loadData(self,record,ins,type,size,readId)
+                return
+            elif size == 1:
+                unpacked = ins.unpack('B',size,readId)
+            else:
+                raise "Unexpected size encountered for DIAL subrecord: %s" % size
+            unpacked += self.defaults[len(unpacked):]
+            setter = record.__setattr__
+            for attr,value,action in zip(self.attrs,unpacked,self.actions):
+                if callable(action): value = action(value)
+                setter(attr,value)
+            if self._debug: print unpacked, record.flags.getTrueAttrs()
+    class MelDialDistributor(MelNull):
+        def __init__(self):
+            self._debug = False
+        def getLoaders(self,loaders):
+            """Self as loader for structure types."""
+            for type in ('INFC','INFX',):
+                loaders[type] = self
+        def setMelSet(self,melSet):
+            """Set parent melset. Need this so that can reassign loaders later."""
+            self.melSet = melSet
+            self.loaders = {}
+            for element in melSet.elements:
+                attr = element.__dict__.get('attr',None)
+                if attr: self.loaders[attr] = element
+        def loadData(self,record,ins,type,size,readId):
+            if type in ('INFC', 'INFX'):
+                quests = record.__getattribute__('quests')
+                if quests:
+                    element = self.loaders['quests']
+                else:
+                    if type == 'INFC':
+                        element = self.loaders['bare_infc_p']
+                    elif type == 'INFX':
+                        element = self.loaders['bare_infx_p']
+            element.loadData(record,ins,type,size,readId)
     melSet = MelSet(
         MelString('EDID','eid'),
-        MelFids('QSTI','quests'), ### QSTRs?
+        MelFid('INFC','bare_infc_p'),
+        MelFid('INFX','bare_infx_p'),
+        MelGroups('quests',
+            MelFid('QSTI','quest'),
+            MelGroups('unknown',
+                MelFid('INFC','infc_p'),
+                MelBase('INFX','infx_p'),
+            ),
+        ),
         MelString('FULL','full'),
-        MelStruct('DATA','B','dialType'),
+        MelStruct('PNAM','f','priority'),
+        MelString('TDUM','tdum_p'),
+        MelDialData('DATA','BB','dialType','dialFlags'),
+        MelDialDistributor(),
     )
+    melSet.elements[-1].setMelSet(melSet)
     __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed() + ['infoStamp','infoStamp2','infos']
 
     def __init__(self,header,ins=None,unpack=False):
@@ -2965,6 +3063,7 @@ class MreFact(MelRecord):
             MelString('MNAM','male'),
             MelString('FNAM','female'),
             MelString('INAM','insigniaPath'),),
+        MelOptStruct('WMI1','I',(FID,'reputation',None)),
         )
     __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
 
@@ -3039,20 +3138,20 @@ class MreGmst(MelRecord):
     __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
 
     def getGMSTFid(self):
-        """Returns Fallout3.esm fid in long format for specified eid."""
+        """Returns FalloutNV.esm fid in long format for specified eid."""
         myClass = self.__class__
         if not myClass.falloutIds:
             try:
-                myClass.falloutIds = cPickle.load(dirs['db'].join('Fallout3_ids.pkl').open())['GMST']
+                myClass.falloutIds = cPickle.load(dirs['db'].join('FalloutNV_ids.pkl').open())['GMST']
             except:
                 old = bolt.deprintOn
                 bolt.deprintOn = True
                 print
-                print 'Error loading Fallout3_ids.pkl:'
+                print 'Error loading FalloutNV_ids.pkl:'
                 deprint(' ',traceback=True)
                 bolt.deprintOn = old
                 print
-                print 'Manually testing if file exists:', dirs['db'].join('Fallout3_ids.pkl').exists()
+                print 'Manually testing if file exists:', dirs['db'].join('FalloutNV_ids.pkl').exists()
                 print 'Current working directory:', os.getcwd()
                 print "dirs['db']:", dirs['db']
                 print
@@ -3126,6 +3225,7 @@ class MreInfo(MelRecord):
     classType = 'INFO'
     _flags = Flags(0,Flags.getNames(
         'goodbye','random','sayOnce','runImmediately','infoRefusal','randomEnd','runForRumors','sayOnceADay','alwaysDarken'))
+    _variableFlags = Flags(0L,Flags.getNames('isLongOrShort'))
     class MelInfoData(MelStruct):
         """Support older 2 byte version."""
         def loadData(self,record,ins,type,size,readId):
@@ -3153,18 +3253,43 @@ class MreInfo(MelRecord):
         MelFid('PNAM','prevInfo'),
         MelFids('NAME','addTopics'),
         MelGroups('responses',
-            MelStruct('TRDT','Ii4sB3s','emotionType','emotionValue',('unused1',null4),'responseNum',('unused2',null3)),
+            MelStruct('TRDT','Ii4sB3sIB3s','emotionType','emotionValue',('unused1',null4),'responseNum',('unused2','0xcd0xcd0xcd'),
+                      (FID,'sound'),'flags',('unused3','0xcd0xcd0xcd')),
             MelString('NAM1','responseText'),
             MelString('NAM2','actorNotes'),
+            MelString('NAM3','edits'),
+            MelFid('SNAM','speakerAnimation'),
+            MelFid('LNAM','listenerAnimation'),
             ),
         MelConditions(),
         MelFids('TCLT','choices'),
         MelFids('TCLF','linksFrom'),
-        MelBase('SCHD','schd_p'), #--Old format script header?
-        MelInfoSchr('SCHR','4s4I',('unused2',null4),'numRefs','compiledSize','lastIndex','scriptType'),
-        MelBase('SCDA','compiled_p'),
-        MelString('SCTX','scriptText'),
-        MelScrxen('SCRV/SCRO','references')
+        MelFids('TCFU','tcfu_p'),
+        # MelBase('SCHD','schd_p'), #--Old format script header?
+        MelGroup('scriptBegin',
+            MelInfoSchr('SCHR','4s4I',('unused2',null4),'numRefs','compiledSize','lastIndex','scriptType'),
+            MelBase('SCDA','compiled_p'),
+            MelString('SCTX','scriptText'),
+            MelGroups('vars',
+                MelStruct('SLSD','I12sB7s','index',('unused1',null4+null4+null4),(_variableFlags,'flags',0L),('unused2',null4+null3)),
+                MelString('SCVR','name')),
+            MelScrxen('SCRV/SCRO','references'),
+            ),
+        MelGroup('scriptEnd',
+            MelBase('NEXT','marker'),
+            MelInfoSchr('SCHR','4s4I',('unused2',null4),'numRefs','compiledSize','lastIndex','scriptType'),
+            MelBase('SCDA','compiled_p'),
+            MelString('SCTX','scriptText'),
+            MelGroups('vars',
+                MelStruct('SLSD','I12sB7s','index',('unused1',null4+null4+null4),(_variableFlags,'flags',0L),('unused2',null4+null3)),
+                MelString('SCVR','name')),
+            MelScrxen('SCRV/SCRO','references'),
+            ),
+        # MelFid('SNDD','sndd_p'),
+        MelString('RNAM','prompt'),
+        MelFid('ANAM','speaker'),
+        MelFid('KNAM','acterValuePeak'),
+        MelStruct('DNAM', 'I', 'speechChallenge')
         )
     __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
 
@@ -3264,6 +3389,7 @@ class MreLigh(MelRecord):
                   'corner1X','corner1Y','corner1Z'),
         MelModel(),
         MelFid('SCRI','script'),
+        MelDestructible(), ### Rescue unexpected (or out of order) subrecord in EVE FNV.esp
         MelString('FULL','full'),
         MelString('ICON','iconPath'),
         MelLighData('DATA','iI3BsIffIf','duration','radius','red','green','blue',('unused1',null1),
@@ -3282,6 +3408,7 @@ class MreLscr(MelRecord):
         MelString('ICON','iconPath'),
         MelString('DESC','text'),
         MelStructs('LNAM','2I2h','Locations',(FID,'direct'),(FID,'indirect'),'gridy','gridx'),
+        MelFid('WMI1','loadScreenType'),
         )
     __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
 
@@ -3420,6 +3547,7 @@ class MreMisc(MelRecord):
         MelFid('YNAM','soundPickUp'),
         MelFid('ZNAM','soundDrop'),
         MelStruct('DATA','if','value','weight'),
+        MelFid('RNAM','soundRandomLooping'),
         )
     __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
 
@@ -4332,7 +4460,7 @@ class MreRegn(MelRecord):
 
     melSet = MelSet(
         MelString('EDID','eid'),
-        MelString('ICON','largeIconPath'),
+        MelString('ICON','iconPath'),
         MelString('MICO','smallIconPath'),
         MelStruct('RCLR','3Bs','mapRed','mapBlue','mapGreen',('unused1',null1)),
         MelFid('WNAM','worldspace'),
@@ -4340,18 +4468,20 @@ class MreRegn(MelRecord):
             MelStruct('RPLI','I','edgeFalloff'),
             MelStructA('RPLD','2f','points','posX','posY')),
         MelGroups('entries',
-            MelStruct('RDAT', 'I2B2s','entryType', (_flags,'flags'), 'priority', ('unused1',null2)), ####flags actually an enum...
+		    ####flags actually an enum...
+            MelStruct('RDAT', 'I2B2s','entryType', (_flags,'flags'), 'priority', ('unused1',null2)),
             MelRegnStructA('RDOT', 'IH2sf4B2H4s4f3H2s4s', 'objects', (FID,'objectId'), 'parentIndex',
-            ('unused1',null2), 'density', 'clustering', 'minSlope', 'maxSlope',
-            (obflags, 'flags'), 'radiusWRTParent', 'radius', ('unk1',null4),
-            'maxHeight', 'sink', 'sinkVar', 'sizeVar', 'angleVarX',
-            'angleVarY',  'angleVarZ', ('unused2',null2), ('unk2',null4)),
+                ('unused1',null2), 'density', 'clustering', 'minSlope', 'maxSlope',
+                (obflags, 'flags'), 'radiusWRTParent', 'radius', ('unk1',null4),
+                'maxHeight', 'sink', 'sinkVar', 'sizeVar', 'angleVarX',
+                'angleVarY',  'angleVarZ', ('unused2',null2), ('unk2',null4)),
             MelRegnString('RDMP', 'mapName'),
-            #MelRegnString('ICON', 'iconPath'),  ####Obsolete? Only one record in Fallout3.esm
-            MelRegnStructA('RDGS', 'I4s', 'grasses', (FID,'grass'), ('unk1',null4)),
-            MelRegnOptStruct('RDMD', 'I', ('musicType',None)),
+            MelFid('RDMO','music'),
+            MelFid('RDSI','incidentalMediaSet'),
+            MelFids('RDSB','battleMediaSets'),
             MelRegnStructA('RDSD', '3I', 'sounds', (FID, 'sound'), (sdflags, 'flags'), 'chance'),
-            MelRegnStructA('RDWT', '3I', 'weather', (FID, 'weather', None), 'chance', (FID, 'global', None))),
+            MelRegnStructA('RDWT', '3I', 'weather', (FID, 'weather', None), 'chance', (FID, 'global', None)),
+            MelFidList('RDID','imposters')),
     )
     __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
 
@@ -4469,6 +4599,7 @@ class MreSoun(MelRecord):
                   'corner0X','corner0Y','corner0Z',
                   'corner1X','corner1Y','corner1Z'),
         MelString('FNAM','soundFile'),
+        MelStruct('RNAM','B','_rnam'),
         MelOptStruct('SNDD','=2BbsIh2B6HI8s',('minDistance',None), ('maxDistance',None), ('freqAdjustment',None), ('unused1',null1),
             (_flags,'flags',None),('staticAtten',None),('stopTime',None),('startTime',None),
             ('point0',0),('point1',0),('point2',0),('point3',0),('point4',0),('reverb',0),('priority',0),'unknown'),
@@ -4512,6 +4643,8 @@ class MreStat(MelRecord):
                   'corner0X','corner0Y','corner0Z',
                   'corner1X','corner1Y','corner1Z'),
         MelModel(),
+        MelStruct('BRUS','=B',('passthroughSound',255)),
+        MelFid('RNAM','soundRandomLooping'),
         )
     __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
 
@@ -4687,24 +4820,32 @@ class MreWeap(MelRecord):
             'shortBurst',
             'RumbleAlternate',
             'longBurst',
-            'unknown12','unknown13','unknown14','unknown15',
-            'unknown16','unknown17','unknown18','unknown19',
-            'unknown20','unknown21','unknown22','unknown23',
-            'unknown24','unknown25','unknown26','unknown27',
-            'unknown28','unknown29','unknown30','unknown31',
+            'scopeHasNightVision',
+            'scopeFromMod',
         ))
     _cflags = Flags(0L,Flags.getNames(
             'onDeath',
             'unknown1','unknown2','unknown3','unknown4',
             'unknown5','unknown6','unknown7',
         ))
-
     class MelWeapDnam(MelStruct):
         """Handle older trucated DNAM for WEAP subrecord."""
         def loadData(self,record,ins,type,size,readId):
-            if size == 136:
+            if size == 204:
                 MelStruct.loadData(self,record,ins,type,size,readId)
                 return
+            elif size == 200:
+                unpacked = ins.unpack('Iff4B5fI4BffII11fIIffIfff f3I3fIIsB2s6f',size,readId)
+            elif size == 196:
+                unpacked = ins.unpack('Iff4B5fI4BffII11fIIffIfff f3I3fIIsB2s5f',size,readId)
+            elif size == 180:
+                unpacked = ins.unpack('Iff4B5fI4BffII11fIIffIfff f3I3fIIsB2sf',size,readId)
+            elif size == 172:
+                unpacked = ins.unpack('Iff4B5fI4BffII11fIIffIfff f3I3fII',size,readId)
+            elif size == 164:
+                unpacked = ins.unpack('Iff4B5fI4BffII11fIIffIfff f3I3f',size,readId)
+            elif size == 136:
+                unpacked = ins.unpack('Iff4B5fI4BffII11fIIffIfff',size,readId)
             elif size == 124:
                 #--Else 124 byte record (skips sightUsage, semiAutomaticFireDelayMin and semiAutomaticFireDelayMax...
                 unpacked = ins.unpack('Iff4B5fI4BffII11fIIffI',size,readId)
@@ -4719,7 +4860,22 @@ class MreWeap(MelRecord):
                 if callable(action): value = action(value)
                 setter(attr,value)
             if self._debug: print unpacked
-
+    class MelWeapVats(MelStruct):
+        """Handle older trucated VATS for WEAP subrecord."""
+        def loadData(self,record,ins,type,size,readId):
+            if size == 20:
+                MelStruct.loadData(self,record,ins,type,size,readId)
+                return
+            elif size == 16:
+                unpacked = ins.unpack('Ifff',size,readId)
+            else:
+                raise "Unexpected size encountered for WEAP:VATS subrecord: %s" % size
+            unpacked += self.defaults[len(unpacked):]
+            setter = record.__setattr__
+            for attr,value,action in zip(self.attrs,unpacked,self.actions):
+                if callable(action): value = action(value)
+                setter(attr,value)
+            if self._debug: print unpacked
     melSet = MelSet(
         MelString('EDID','eid'),
         MelStruct('OBND','=6h',
@@ -4744,10 +4900,34 @@ class MreWeap(MelRecord):
         MelModel('scopeModel',3),
         MelFid('EFSD','scopeEffect'),
         MelModel('worldModel',4),
+        MelGroup('modelWithMods',
+                 MelString('MWD1','mod1Path'),
+                 MelString('MWD2','mod2Path'),
+                 MelString('MWD3','mod1and2Path'),
+                 MelString('MWD4','mod3Path'),
+                 MelString('MWD5','mod1and3Path'),
+                 MelString('MWD6','mod2and3Path'),
+                 MelString('MWD7','mod1and2and3Path'),
+                 ),
+        MelString('VANM','vatsAttackName'),
         MelString('NNAM','embeddedWeaponNode'),
         MelFid('INAM','impactDataset'),
         MelFid('WNAM','firstPersonModel'),
-        MelFid('SNAM','soundGunShot3D'),
+        MelGroup('firstPersonModelWithMods',
+                 MelFid('WNM1','mod1Path'),
+                 MelFid('WNM2','mod2Path'),
+                 MelFid('WNM3','mod1and2Path'),
+                 MelFid('WNM4','mod3Path'),
+                 MelFid('WNM5','mod1and3Path'),
+                 MelFid('WNM6','mod2and3Path'),
+                 MelFid('WNM7','mod1and2and3Path'),
+                 ),
+        MelGroup('weaponMods',
+                 MelFid('WMI1','mod1'),
+                 MelFid('WMI2','mod2'),
+                 MelFid('WMI3','mod3'),
+                 ),
+        MelFids('SNAM','soundGunShot3D'),
         MelFid('XNAM','soundGunShot2D'),
         MelFid('NAM7','soundGunShot3DLooping'),
         MelFid('TNAM','soundMeleeSwingGunNoAmmo'),
@@ -4755,8 +4935,10 @@ class MreWeap(MelRecord):
         MelFid('UNAM','idle'),
         MelFid('NAM9','equip'),
         MelFid('NAM8','unequip'),
+        MelFids('WMS1','soundMod1Shoot3Ds'),
+        MelFid('WMS2','soundMod1Shoot2D'),
         MelStruct('DATA','2IfHB','value','health','weight','damage','clipsize'),
-        MelWeapDnam('DNAM','Iff4B5fI4BffII11fIIffIfff',
+        MelWeapDnam('DNAM','Iff4B5fI4BffII11fIIffIfff f3I3fIIsB2s6fI',
                     'animationType','animationMultiplier','reach',(_dflags1,'dnamFlags1',0L),
                     'gripAnimation','ammoUse','reloadAnimation','minSpread','spread',
                     'unknown','sightFov','unknown2',(FID,'projectile',0L),
@@ -4764,8 +4946,14 @@ class MreWeap(MelRecord):
                     'onHit',(_dflags2,'dnamFlags2',0L),'animationAttackMultiplier','fireRate','overrideActionPoint',
                     'rumbleLeftMotorStrength','rumbleRightMotorStrength','rumbleDuration','overrideDamageToWeaponMult',
                     'attackShotsPerSec','reloadTime','jamTime','aimArc','skill','rumblePattern','rambleWavelangth','limbDmgMult',
-                    ('resistType',0xFFFFFFFF),'sightUsage','semiAutomaticFireDelayMin','semiAutomaticFireDelayMax'),
+                    ('resistType',0xFFFFFFFF),'sightUsage','semiAutomaticFireDelayMin','semiAutomaticFireDelayMax',
+                    # NV additions
+                    'unknown3','effectMod1','effectMod2','effectMod3','valueAMod1','valueAMod2','valueAMod3',
+                    'powerAttackAnimation','strengthReq',('unknown4',null1),'reloadAnimationMod',('unknown5',null2),
+                    'regenRate','killImpulse','valueBMod1','valueBMod2','valueBMod3','impulseDist','skillReq'
+                    ),
         MelStruct('CRDT','IfHI','criticalDamage','criticalMultiplier',(_cflags,'criticalFlags',0L),(FID,'criticalEffect',0L)),
+        MelWeapVats('VATS','I3fBB2s','vatsEffect','vatsSkill','vatsDamMult','vatsAp','vatsSilent','vatsModReqiured',('unused1',null2)),
         MelBase('VNAM','soundLevel'),
         )
     __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
@@ -4812,6 +5000,8 @@ class MreWthr(MelRecord):
         MelFid("\x01IAD", 'dayImageSpaceModifier'),
         MelFid("\x02IAD", 'sunsetImageSpaceModifier'),
         MelFid("\x03IAD", 'nightImageSpaceModifier'),
+        MelFid("\x04IAD", 'unknown1ImageSpaceModifier'),
+        MelFid("\x05IAD", 'unknown2ImageSpaceModifier'),
         MelString('DNAM','upperLayer'),
         MelString('CNAM','lowerLayer'),
         MelString('ANAM','layer2'),
@@ -5166,6 +5356,22 @@ class MreProj(MelRecord):
                                     'superSonic',
                                     'pinsLimbs',
                                     'passThroughSmallTransparent'))
+    class MelProjData(MelStruct):
+        """Handle older trucated DATA for PROJ subrecord."""
+        def loadData(self,record,ins,type,size,readId):
+            if size == 84:
+                MelStruct.loadData(self,record,ins,type,size,readId)
+                return
+            elif size == 68:
+                unpacked = ins.unpack('HHfffIIfffIIfffIII',size,readId)
+            else:
+                raise "Unexpected size encountered for PROJ:DATA subrecord: %s" % size
+            unpacked += self.defaults[len(unpacked):]
+            setter = record.__setattr__
+            for attr,value,action in zip(self.attrs,unpacked,self.actions):
+                if callable(action): value = action(value)
+                setter(attr,value)
+            if self._debug: print unpacked
     melSet = MelSet(
         MelString('EDID','eid'),
         MelStruct('OBND','=6h',
@@ -5174,13 +5380,15 @@ class MreProj(MelRecord):
         MelString('FULL','full'),
         MelModel(),
         MelDestructible(),
-        MelStruct('DATA','HHfffIIfffIIfffIII',(_flags,'flags'),'type',
+        MelProjData('DATA','HHfffIIfffIIfffIII ffff',(_flags,'flags'),'type',
                   ('gravity',0.00000),('speed',10000.00000),('range',10000.00000),
                   (FID,'light',0),(FID,'muzzleFlash',0),('tracerChance',0.00000),
                   ('explosionAltTrigerProximity',0.00000),('explosionAltTrigerTimer',0.00000),
                   (FID,'explosion',0),(FID,'sound',0),('muzzleFlashDuration',0.00000),
                   ('fadeDuration',0.00000),('impactForce',0.00000),
-                  (FID,'soundCountDown',0),(FID,'soundDisable',0),(FID,'defaultWeaponSource',0)),
+                  (FID,'soundCountDown',0),(FID,'soundDisable',0),(FID,'defaultWeaponSource',0),
+                  ('rotationX',0.00000),('rotationY',0.00000),('rotationZ',0.00000),
+                  ('bouncyMult',0.00000)),
         MelString('NAM1','muzzleFlashPath'),
         MelBase('NAM2','_nam2'), #--Should be a struct. Maybe later.
         MelStruct('VNAM','I','soundLevel'),
@@ -5303,6 +5511,8 @@ class MreImad(MelRecord):
         MelBase('\x14IAD','_14iad_p'),
         MelBase('uIAD','_uiad_p'),
         MelBase('TIAD','tiad_p'),
+        MelFid('RDSD','soundIntro'),
+        MelFid('RDSI','soundOutro'),
     )
     __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
 
@@ -5494,10 +5704,28 @@ class MreBptd(MelRecord):
     """Body part data record."""
     classType = 'BPTD'
     _flags = Flags(0L,Flags.getNames('severable','ikData','ikBipedData','explodable','ikIsHead','ikHeadtracking','toHitChanceAbsolute'))
+    class MelBptdGroups(MelGroups):
+        def loadData(self,record,ins,type,size,readId):
+            """Reads data from ins into record attribute."""
+            if type == self.type0:
+                target = self.getDefault()
+                record.__getattribute__(self.attr).append(target)
+            else:
+                targets = record.__getattribute__(self.attr)
+                if targets:
+                    target = targets[-1]
+                elif type == 'BPNN': # for NVVoidBodyPartData, NVraven02
+                    target = self.getDefault()
+                    record.__getattribute__(self.attr).append(target)
+            slots = []
+            for element in self.elements:
+                slots.extend(element.getSlotsUsed())
+            target.__slots__ = slots
+            self.loaders[type].loadData(target,ins,type,size,readId)
     melSet = MelSet(
         MelString('EDID','eid'),
         MelModel(),
-        MelGroups('bodyParts',
+        MelBptdGroups('bodyParts',
             MelString('BPTN','partName'),
             MelString('BPNN','nodeName'),
             MelString('BPNT','vatsTarget'),
@@ -5534,6 +5762,7 @@ class MreMusc(MelRecord):
     melSet = MelSet(
         MelString('EDID','eid'),
         MelString('FNAM','filename'),
+        MelStruct('ANAM','f','dB'),
         )
     __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
 
@@ -5580,9 +5809,11 @@ class MreAspc(MelRecord):
         MelStruct('OBND','=6h',
                   'corner0X','corner0Y','corner0Z',
                   'corner1X','corner1Y','corner1Z'),
-        MelFid('SNAM','soundLooping'),
+        MelFids('SNAM','soundLooping'),
+        MelStruct('WNAM','I','wallaTrigerCount'),
         MelFid('RDAT','useSoundFromRegion'),
         MelStruct('ANAM','I','environmentType'),
+        MelStruct('INAM','I','isInterior'),
         )
     __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
 
@@ -5606,12 +5837,15 @@ class MreDobj(MelRecord):
     classType = 'DOBJ'
     melSet = MelSet(
         MelString('EDID','eid'),
-        MelStruct('DATA','21I',(FID,'stimpack'),(FID,'superStimpack'),(FID,'radX'),(FID,'radAway'),
+        MelStruct('DATA','34I',(FID,'stimpack'),(FID,'superStimpack'),(FID,'radX'),(FID,'radAway'),
             (FID,'morphine'),(FID,'perkParalysis'),(FID,'playerFaction'),(FID,'mysteriousStrangerNpc'),
             (FID,'mysteriousStrangerFaction'),(FID,'defaultMusic'),(FID,'battleMusic'),(FID,'deathMusic'),
             (FID,'successMusic'),(FID,'levelUpMusic'),(FID,'playerVoiceMale'),(FID,'playerVoiceMaleChild'),
             (FID,'playerVoiceFemale'),(FID,'playerVoiceFemaleChild'),(FID,'eatPackageDefaultFood'),
-            (FID,'everyActorAbility'),(FID,'drugWearsOffImageSpace'),),
+            (FID,'everyActorAbility'),(FID,'drugWearsOffImageSpace'),(FID,'doctersBag'),(FID,'missFortuneNpc'),
+            (FID,'missFortuneFaction'),(FID,'meltdownExplosion'),(FID,'unarmedForwardPA'),(FID,'unarmedBackwardPA'),
+            (FID,'unarmedLeftPA'),(FID,'unarmedRightPA'),(FID,'unarmedCrouchPA'),(FID,'unarmedCounterPA'),
+            (FID,'spotterEffect'),(FID,'itemDetectedEffect'),(FID,'cateyeMobileEffect'),),
         )
     __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
 
@@ -5661,6 +5895,22 @@ class MreArma(MelRecord):
         'alcohol','bigGuns','bodyWear','chems','energyWeapons','food','handWear','headWear',
         'meleeWeapons','mine','none','smallGuns','stimpack','thrownWeapons','unarmedWeapon'
     ))
+    class MelArmaDnam(MelStruct):
+        """Handle older trucated DNAM for ARMA subrecord."""
+        def loadData(self,record,ins,type,size,readId):
+            if size == 12:
+                MelStruct.loadData(self,record,ins,type,size,readId)
+                return
+            elif size == 4:
+                unpacked = ins.unpack('=HH',size,readId)
+            else:
+                raise "Unexpected size encountered for ARMA subrecord: %s" % size
+            unpacked += self.defaults[len(unpacked):]
+            setter = record.__setattr__
+            for attr,value,action in zip(self.attrs,unpacked,self.actions):
+                if callable(action): value = action(value)
+                setter(attr,value)
+            if self._debug: print unpacked, record.flags.getTrueAttrs()
     melSet = MelSet(
         MelString('EDID','eid'),
         MelStruct('OBND','=6h',
@@ -5678,7 +5928,7 @@ class MreArma(MelRecord):
         MelString('MIC2','femaleSmallIconPath'),
         MelStruct('ETYP','I',(_etype,'etype',0L)),
         MelStruct('DATA','IIf','value','health','weight'),
-        MelStruct('DNAM','HH','ar','flags'),
+        MelArmaDnam('DNAM','=HHfI','ar','flags','dt',('unknown',0L)),
         )
     __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
 
@@ -5697,9 +5947,324 @@ class MreTact(MelRecord):
         MelDestructible(),
         MelFid('SNAM','sound'),
         MelFid('VNAM','voiceType'),
+        MelFid('INAM','radioTemplate'),
         )
     __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
 
+#------------------------------------------------------------------------------
+class MreImod(MelRecord):
+    """Item mod."""
+    classType = 'IMOD'
+    melSet = MelSet(
+        MelString('EDID','eid'),
+        MelStruct('OBND','=6h',
+                  'corner0X','corner0Y','corner0Z',
+                  'corner1X','corner1Y','corner1Z'),
+        MelString('FULL','full'),
+        MelModel(),
+        MelString('ICON','largeIconPath'),
+        MelString('MICO','smallIconPath'),
+        MelFid('SCRI','script'),
+        MelString('DESC','description'),
+        MelDestructible(),
+        MelFid('YNAM','soundPickUp'),
+        MelFid('ZNAM','soundDrop'),
+        MelStruct('DATA','If','value','weight'),
+        )
+    __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
+
+#------------------------------------------------------------------------------
+class MreRepu(MelRecord):
+    """Reputation."""
+    classType = 'REPU'
+    melSet = MelSet(
+        MelString('EDID','eid'),
+        MelString('FULL','full'),
+        MelString('ICON','largeIconPath'),
+        MelString('MICO','smallIconPath'),
+        MelStruct('DATA','I','value'),
+        )
+    __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
+
+#------------------------------------------------------------------------------
+class MreRcpe(MelRecord):
+    """Recipe."""
+    classType = 'RCPE'
+    class MelRcpeDistributor(MelNull):
+        def __init__(self):
+            self._debug = False
+        def getLoaders(self,loaders):
+            """Self as loader for structure types."""
+            for type in ('RCQY',):
+                loaders[type] = self
+        def setMelSet(self,melSet):
+            """Set parent melset. Need this so that can reassign loaders later."""
+            self.melSet = melSet
+            self.loaders = {}
+            for element in melSet.elements:
+                attr = element.__dict__.get('attr',None)
+                if attr: self.loaders[attr] = element
+        def loadData(self,record,ins,type,size,readId):
+            if type in ('RCQY',):
+                outputs = record.__getattribute__('outputs')
+                if outputs:
+                    element = self.loaders['outputs']
+                else:
+                    element = self.loaders['ingredients']
+            element.loadData(record,ins,type,size,readId)
+    melSet = MelSet(
+        MelString('EDID','eid'),
+        MelString('FULL','full'),
+        MelConditions(),
+        MelStruct('DATA','4I','skill','level',(FID,'category'),(FID,'subCategory')),
+        MelGroups('ingredients',
+            MelFid('RCIL','item'),
+            MelStruct('RCQY','I','quantity'),
+            ),
+        MelGroups('outputs',
+            MelFid('RCOD','item'),
+            MelStruct('RCQY','I','quantity'),
+            ),
+        MelRcpeDistributor(),
+        )
+    melSet.elements[-1].setMelSet(melSet)
+    __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
+
+#------------------------------------------------------------------------------
+class MreRcct(MelRecord):
+    """Recipe Category."""
+    classType = 'RCCT'
+    melSet = MelSet(
+        MelString('EDID','eid'),
+        MelString('FULL','full'),
+        MelStruct('DATA','=B','flags'),
+        )
+    __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
+
+#------------------------------------------------------------------------------
+class MreChip(MelRecord):
+    """Casino Chip."""
+    classType = 'CHIP'
+    melSet = MelSet(
+        MelString('EDID','eid'),
+        MelStruct('OBND','=6h',
+                  'corner0X','corner0Y','corner0Z',
+                  'corner1X','corner1Y','corner1Z'),
+        MelString('FULL','full'),
+        MelModel(),
+        MelString('ICON','largeIconPath'),
+        MelString('MICO','smallIconPath'),
+        MelDestructible(),
+        MelFid('YNAM','soundPickUp'),
+        MelFid('ZNAM','soundDrop'),
+        )
+    __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
+
+#------------------------------------------------------------------------------
+class MreCsno(MelRecord):
+    """Casino."""
+    classType = 'CSNO'
+    melSet = MelSet(
+        MelString('EDID','eid'),
+        MelString('FULL','full'),
+        MelStruct('DATA','2f9I2II','decksPercentBeforeShuffle','BlackjackPayoutRatio',
+            'slotReel0','slotReel1','slotReel2','slotReel3','slotReel4','slotReel5','slotReel6',
+            'numberOfDecks','maxWinnings',(FID,'currency'),(FID,'casinoWinningQuest'),'flags'),
+        MelGroups('chipModels',
+            MelString('MODL','model')),
+        MelString('MOD2','slotMachineModel'),
+        MelString('MOD3','blackjackTableModel'),
+        MelString('MOD4','rouletteTableModel'),
+        MelGroups('slotReelTextures',
+            MelString('ICON','texture')),
+        MelGroups('blackjackDecks',
+            MelString('ICO2','texture')),
+        )
+    __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
+
+#------------------------------------------------------------------------------
+class MreLsct(MelRecord):
+    """Load screen tip."""
+    classType = 'LSCT'
+    melSet = MelSet(
+        MelString('EDID','eid'),
+        MelStruct('DATA','I 4IfI3fI20s I3f4sI','type','data1X','data1Y','data1Width','data1Height','data1Orientation',
+            'data1Font','data1ColorR','data1ColorG','data1ColorB','data1Align','unknown1',
+            'data2Font','data2ColorR','data2ColorG','data2ColorB','unknown2','stats'),
+        )
+    __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
+
+#------------------------------------------------------------------------------
+class MreMset(MelRecord):
+    """Media Set."""
+    classType = 'MSET'
+    melSet = MelSet(
+        MelString('EDID','eid'),
+        MelString('FULL','full'),
+        MelStruct('NAM1','I','type'),
+        MelString('NAM2','I','nam2'),
+        MelString('NAM3','I','nam3'),
+        MelString('NAM4','I','nam4'),
+        MelString('NAM5','I','nam5'),
+        MelString('NAM6','I','nam6'),
+        MelString('NAM7','I','nam7'),
+        MelStruct('NAM8','f','nam8'),
+        MelStruct('NAM9','f','nam9'),
+        MelStruct('NAM0','f','nam0'),
+        MelStruct('ANAM','f','anam'),
+        MelStruct('BNAM','f','bnam'),
+        MelStruct('CNAM','f','cnam'),
+        MelStruct('JNAM','f','jnam'),
+        MelStruct('KNAM','f','knam'),
+        MelStruct('LNAM','f','lnam'),
+        MelStruct('MNAM','f','mnam'),
+        MelStruct('NNAM','f','nnam'),
+        MelStruct('ONAM','f','onam'),
+        MelStruct('PNAM','B','enableFlags'),
+        MelStruct('DNAM','f','dnam'),
+        MelStruct('ENAM','f','enam'),
+        MelStruct('FNAM','f','fnam'),
+        MelStruct('GNAM','f','gnam'),
+        MelFid('HNAM','I','hnam'),
+        MelFid('INAM','I','inam'),
+        MelBase('DATA','data'),
+        )
+    __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
+
+#------------------------------------------------------------------------------
+class MreAloc(MelRecord):
+    """Media location controller."""
+    classType = 'ALOC'
+    melSet = MelSet(
+        MelString('EDID','eid'),
+        MelString('FULL','full'),
+        MelStruct('NAM1','I','flags'),
+        MelStruct('NAM2','I','num2'),
+        MelStruct('NAM3','I','nam3'),
+        MelStruct('NAM4','f','locationDelay'),
+        MelStruct('NAM5','I','dayStart'),
+        MelStruct('NAM6','I','nightStart'),
+        MelStruct('NAM7','f','retrigerDelay'),
+        MelFids('HNAM','neutralSets'),
+        MelFids('ZNAM','allySets'),
+        MelFids('XNAM','friendSets'),
+        MelFids('YNAM','enemySets'),
+        MelFids('LNAM','locationSets'),
+        MelFids('GNAM','battleSets'),
+        MelFid('RNAM','conditionalFaction'),
+        MelStruct('FNAM','I','fnam'),
+        )
+    __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
+
+#------------------------------------------------------------------------------
+class MreChal(MelRecord):
+    """Challenge record."""
+    classType = 'CHAL'
+    melSet = MelSet(
+        MelString('EDID','eid'),
+        MelString('FULL','full'),
+        MelFid('SCRI','script'),
+        MelString('DESC','description'),
+        MelStruct('DATA','2IB3sI2s2s4s','type','threshold','flags','unused','interval','dependOnType1','dependOnType2','dependOnType3'),
+        MelFid('SNAM','dependOnType4'),
+        MelFid('XNAM','dependOnType5'),
+        )
+    __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
+
+#------------------------------------------------------------------------------
+class MreAmef(MelRecord):
+    """Ammo effect record."""
+    classType = 'AMEF'
+    melSet = MelSet(
+        MelString('EDID','eid'),
+        MelString('FULL','full'),
+        MelStruct('DATA','2If','type','operation','value'),
+        )
+    __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
+
+#------------------------------------------------------------------------------
+class MreCcrd(MelRecord):
+    """Caravan Card."""
+    classType = 'CCRD'
+    melSet = MelSet(
+        MelString('EDID','eid'),
+        MelStruct('OBND','=6h',
+                  'corner0X','corner0Y','corner0Z',
+                  'corner1X','corner1Y','corner1Z'),
+        MelString('FULL','full'),
+        MelModel(),
+        MelString('ICON','largeIconPath'),
+        MelString('MICO','smallIconPath'),
+        MelFid('SCRI','script'),
+        MelFid('YNAM','soundPickUp'),
+        MelFid('ZNAM','soundDrop'),
+        MelString('TX00','textureFace'),
+        MelString('TX01','textureBack'),
+        MelStructs('INTV','I','suitAndValue','value'),
+        MelStruct('DATA','I','value'),
+        )
+    __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
+
+#------------------------------------------------------------------------------
+class MreCmny(MelRecord):
+    """Caravan Money."""
+    classType = 'CMNY'
+    melSet = MelSet(
+        MelString('EDID','eid'),
+        MelStruct('OBND','=6h',
+                  'corner0X','corner0Y','corner0Z',
+                  'corner1X','corner1Y','corner1Z'),
+        MelString('FULL','full'),
+        MelModel(),
+        MelString('ICON','largeIconPath'),
+        MelString('MICO','smallIconPath'),
+        MelFid('YNAM','soundPickUp'),
+        MelFid('ZNAM','soundDrop'),
+        MelStruct('DATA','I','absoluteValue'),
+        )
+    __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
+
+#------------------------------------------------------------------------------
+class MreCdck(MelRecord):
+    """Caravan deck record."""
+    classType = 'CDCK'
+    melSet = MelSet(
+        MelString('EDID','eid'),
+        MelString('FULL','full'),
+        MelFids('CARD','cards'),
+        MelStruct('DATA','I','count'),
+        )
+    __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
+
+#------------------------------------------------------------------------------
+class MreDehy(MelRecord):
+    """Dehydration stage record."""
+    classType = 'DEHY'
+    melSet = MelSet(
+        MelString('EDID','eid'),
+        MelStruct('DATA','2I','trigerThreshold',(FID,'actorEffect')),
+        )
+    __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
+
+#------------------------------------------------------------------------------
+class MreHung(MelRecord):
+    """Hunger stage record."""
+    classType = 'HUNG'
+    melSet = MelSet(
+        MelString('EDID','eid'),
+        MelStruct('DATA','2I','trigerThreshold',(FID,'actorEffect')),
+        )
+    __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
+
+#------------------------------------------------------------------------------
+class MreSlpd(MelRecord):
+    """Sleep deprivation stage record."""
+    classType = 'SLPD'
+    melSet = MelSet(
+        MelString('EDID','eid'),
+        MelStruct('DATA','2I','trigerThreshold',(FID,'actorEffect')),
+        )
+    __slots__ = MelRecord.__slots__ + melSet.getSlotsUsed()
 
 #------------------------------------------------------------------------------
 class MreNavm(MelRecord):
@@ -5772,7 +6337,10 @@ MreRecord.type_class = dict((x.classType,x) for x in (
     MreWatr, MreWeap, MreWrld, MreWthr, MreClmt, MreCsty, MreIdle, MreLtex, MreRegn, MreSbsp,
     MreDial, MreInfo, MreTxst, MreMicn, MreFlst, MrePerk, MreExpl, MreIpct, MreIpds, MreProj,
     MreLvln, MreDebr, MreImad, MreMstt, MreNote, MreTerm, MreAvif, MreEczn, MreBptd, MreVtyp,
-    MreMusc, MrePwat, MreAspc, MreHdpt, MreDobj, MreIdlm, MreArma, MreTact, MreNavm))
+    MreMusc, MrePwat, MreAspc, MreHdpt, MreDobj, MreIdlm, MreArma, MreTact, MreNavm,
+
+    MreImod, MreRepu, MreRcpe, MreRcct, MreChip, MreCsno, MreLsct, MreMset, MreAloc, MreChal,
+    MreAmef, MreCcrd, MreCmny, MreCdck, MreDehy, MreHung, MreSlpd))
 MreRecord.simpleTypes = (set(MreRecord.type_class) -
     set(('TES4','ACHR','ACRE','REFR','CELL','PGRD','ROAD','LAND','WRLD','INFO','DIAL','PGRE','NAVM')))
 
@@ -7092,8 +7660,10 @@ class ModFile:
     def getMastersUsed(self):
         """Updates set of master names according to masters actually used."""
         if not self.longFids: raise StateError("ModFile fids not in long form.")
-        if dirs['mods'].join('Fallout3.esm').exists():
-            masters = MasterSet([GPath('Fallout3.esm')])
+        if dirs['mods'].join('FalloutNV.esm').exists():
+            masters = MasterSet([GPath('FalloutNV.esm')])
+        #elif dirs['mods'].join('Fallout3.esm').exists():
+        #    masters = MasterSet([GPath('Fallout3.esm')]) # insert witty joke here about the old comment
         for block in self.tops.values():
             block.updateMasters(masters)
         return masters.getOrdered()
@@ -7417,15 +7987,15 @@ class PluggyFile:
         self.path.untemp()
 
 #------------------------------------------------------------------------------
-class FoseFile:
-    """Represents a .fose cofile for saves. Used for editing masters list."""
+class NvseFile:
+    """Represents a .nvse cofile for saves. Used for editing masters list."""
     def __init__(self,path):
         self.path = path
         self.name = path.tail
         self.signature = None
         self.formatVersion = None
-        self.foseVersion = None
-        self.foseMinorVersion = None
+        self.nvseVersion = None
+        self.nvseMinorVersion = None
         self.falloutVersion = None
         self.plugins = None
         self.valid = False
@@ -7442,9 +8012,9 @@ class FoseFile:
         def unpack(format,size):
             return struct.unpack(format,ins.read(size))
         self.signature = ins.read(4)
-        if self.signature != 'FOSE':
-            raise FileError(self.name,'File signature != "FOSE"')
-        self.formatVersion,self.foseVersion,self.foseMinorVersion,self.falloutVersion, = unpack('IHHI',12)
+        if self.signature != 'NVSE':
+            raise FileError(self.name,'File signature != "NVSE"')
+        self.formatVersion,self.nvseVersion,self.nvseMinorVersion,self.falloutVersion, = unpack('IHHI',12)
         # if self.formatVersion < X:
         #   raise FileError(self.name,'Unsupported file version: %I' % self.formatVersion)
         #--Plugins
@@ -7476,10 +8046,10 @@ class FoseFile:
         #--Save
         def pack(format,*args):
             buff.write(struct.pack(format,*args))
-        buff.write('FOSE')
+        buff.write('NVSE')
         pack('=I',self.formatVersion)
-        pack('=H',self.foseVersion)
-        pack('=H',self.foseMinorVersion)
+        pack('=H',self.nvseVersion)
+        pack('=H',self.nvseMinorVersion)
         pack('=I',self.falloutVersion)
         #--Plugins
         pack('=I',len(self.plugins))
@@ -7547,6 +8117,7 @@ class SaveHeader:
     """Represents selected info from a Tes4SaveGame file."""
     def __init__(self,path=None):
         """Initialize."""
+        self.language = None
         self.pcName = None
         self.pcNick = None
         self.pcLocation = None
@@ -7564,6 +8135,8 @@ class SaveHeader:
             ins.seek(11) # FO3SAVEGAME
             headerSize, = struct.unpack('I',ins.read(4))
             unknown,delim = struct.unpack('Ic',ins.read(5))
+            self.language = cstrip(ins.read(64))
+            delim, = struct.unpack('c',ins.read(1))
             ssWidth,delim1,ssHeight,delim2,ssDepth,delim3 = struct.unpack('=IcIcIc',ins.read(15))
             #--Name, nickname, level, location, playtime
             size,delim = struct.unpack('Hc',ins.read(3))
@@ -7584,8 +8157,8 @@ class SaveHeader:
             self.image = (ssWidth,ssHeight,ssData)
             #--Masters
             unknown,masterListSize = struct.unpack('=BI',ins.read(5))
-            if unknown != 0x15:
-                raise "%s: Unknown byte is not 0x15." % path
+            if unknown != 0x1B:
+                raise "%s: Unknown byte is not 0x1B." % path
             del self.masters[:]
             numMasters,delim = struct.unpack('Bc',ins.read(2))
             for count in range(numMasters):
@@ -7614,15 +8187,16 @@ class SaveHeader:
         size, = unpack('I',4)
         pack('I',size)
         out.write(ins.read(5))
+        out.write(ins.read(65))
         ssWidth,delim1,ssHeight,delim2 = unpack('=IcIc',10)
         pack('=IcIc',ssWidth,delim1,ssHeight,delim2)
-        out.write(ins.read(size-15))
+        out.write(ins.read(size-80))
         #--Image Data
         out.write(ins.read(3*ssWidth*ssHeight))
         #--Skip old masters
         unknown,oldMasterListSize = unpack('=BI',5)
-        if unknown != 0x15:
-            raise "%s: Unknown byte is not 0x15." % path
+        if unknown != 0x1B:
+            raise "%s: Unknown byte is not 0x1B." % path
         numMasters,delim = unpack('Bc',2)
         oldMasters = []
         for count in range(numMasters):
@@ -7673,13 +8247,13 @@ class SaveHeader:
             pluggy.load()
             pluggy.mapMasters(masterMap)
             pluggy.safeSave()
-        #--FOSE File?
-        fosePath = CoSaves.getPaths(path)[1]
-        if masterMap and fosePath.exists():
-            fose = FoseFile(fosePath)
-            fose.load()
-            fose.mapMasters(masterMap)
-            fose.safeSave()
+        #--NVSE File?
+        nvsePath = CoSaves.getPaths(path)[1]
+        if masterMap and nvsePath.exists():
+            nvse = NvseFile(nvsePath)
+            nvse.load()
+            nvse.mapMasters(masterMap)
+            nvse.safeSave()
 
 #------------------------------------------------------------------------------
 class BSAHeader:
@@ -8098,21 +8672,21 @@ class SaveFile:
                 else:
                     parentid = self.fids[iref]
                 log('%6d %08X %08X %6d kb' % (count,iref,parentid,cumSize/1024))
-    def logStatFose(self,log=None):
+    def logStatNvse(self,log=None):
         """Print stats to log."""
         log = log or bolt.Log()
-        foseFileName = self.fileInfo.getPath().root+'.fose'
-        foseFile = FoseFile(foseFileName)
-        foseFile.load()
+        nvseFileName = self.fileInfo.getPath().root+'.nvse'
+        nvseFile = NvseFile(nvseFileName)
+        nvseFile.load()
         #--Header
         log.setHeader(_('Header'))
         log('=' * 80)
-        log(_('  Format version:  %08X') % (foseFile.formatVersion,))
-        log(_('  FOSE version:    %u.%u') % (foseFile.foseVersion,foseFile.foseMinorVersion,))
-        log(_('  Fallout version: %08X') % (foseFile.falloutVersion,))
+        log(_('  Format version:  %08X') % (nvseFile.formatVersion,))
+        log(_('  NVSE version:    %u.%u') % (nvseFile.nvseVersion,nvseFile.nvseMinorVersion,))
+        log(_('  Fallout version: %08X') % (nvseFile.falloutVersion,))
         #--Plugins
-        if foseFile.plugins != None:
-            for (opcodeBase,chunks) in foseFile.plugins:
+        if nvseFile.plugins != None:
+            for (opcodeBase,chunks) in nvseFile.plugins:
                 log.setHeader(_('Plugin opcode=%08X chunkNum=%u') % (opcodeBase,len(chunks),))
                 log('=' * 80)
                 log(_('  Type  Ver   Size'))
@@ -8127,16 +8701,16 @@ class SaveFile:
                     ins = cStringIO.StringIO(chunkBuff)
                     def unpack(format,size):
                         return struct.unpack(format,ins.read(size))
-                    if (opcodeBase == 0x1400):  # FOSE
+                    if (opcodeBase == 0x1400):  # NVSE
                         if chunkType == 'RVTS':
-                            #--FOSE String
+                            #--NVSE String
                             modIndex,stringID,stringLength, = unpack('=BIH',7)
                             stringData = ins.read(stringLength)
                             log(_('    Mod :  %02X (%s)') % (modIndex, self.masters[modIndex].s))
                             log(_('    ID  :  %u') % stringID)
                             log(_('    Data:  %s') % Unicode(stringData,'mbcs'))
                         elif chunkType == 'RVRA':
-                            #--FOSE Array
+                            #--NVSE Array
                             modIndex,arrayID,keyType,isPacked, = unpack('=BIBB',7)
                             if modIndex == 255:
                                 log(_('    Mod :  %02X (Save File)') % (modIndex))
@@ -8412,7 +8986,7 @@ class SaveFile:
 
 #--------------------------------------------------------------------------------
 class CoSaves:
-    """Handles co-files (.pluggy, .fose) for saves."""
+    """Handles co-files (.pluggy, .nvse) for saves."""
     reSave  = re.compile(r'\.ess(f?)$',re.I)
 
     @staticmethod
@@ -8421,7 +8995,7 @@ class CoSaves:
         maSave = CoSaves.reSave.search(savePath.s)
         if maSave: savePath = savePath.root
         first = maSave and maSave.group(1) or ''
-        return tuple(savePath+ext+first for ext in  ('.pluggy','.fose'))
+        return tuple(savePath+ext+first for ext in  ('.pluggy','.nvse'))
 
     def __init__(self,savePath,saveName=None):
         """Initialize with savePath."""
@@ -8451,14 +9025,14 @@ class CoSaves:
 
     def getTags(self):
         """Returns tags expressing whether cosaves exist and are correct."""
-        cPluggy,cFose = ('','')
+        cPluggy,cNvse = ('','')
         save = self.savePath
-        pluggy,fose = self.paths
+        pluggy,nvse = self.paths
         if pluggy.exists():
             cPluggy = 'XP'[abs(pluggy.mtime - save.mtime) < 10]
-        if fose.exists():
-            cFose = 'XO'[abs(fose.mtime - save.mtime) < 10]
-        return (cFose,cPluggy)
+        if nvse.exists():
+            cNvse = 'XO'[abs(nvse.mtime - save.mtime) < 10]
+        return (cNvse,cPluggy)
 
 # File System -----------------------------------------------------------------
 #--------------------------------------------------------------------------------
@@ -8559,12 +9133,13 @@ class BsaFile:
         """Reset dates of bsa files to 'correct' values."""
         #--Fix the data of a few archive files
         bsaTimes = (
-            ('Fallout - MenuVoices.bsa',1138575220),
-            ('Fallout - Meshes.bsa',1139433736),
-            ('Fallout - Misc.bsa',1138660560),
-            ('Fallout - Sound.bsa',1138162634),
+            ('Fallout - Meshes.bsa',1138575220),
+            ('Fallout - Misc.bsa',1139433736),
+            ('Fallout - Sound.bsa',1138660560),
             (inisettings['FalloutTexturesBSAName'].stail,1138162634),
-            ('Fallout - Voices.bsa',1138166742),
+            ('Fallout - Textures.bsa',1138162634),
+            ('Fallout - Textures2.bsa',1138162934),
+            ('Fallout - Voices1.bsa',1138166742),
             )
         for bsaFile,mtime in bsaTimes:
             dirs['mods'].join(bsaFile).mtime = mtime
@@ -8825,18 +9400,22 @@ class IniFile:
 def BestIniFile(path):
     if path.csbody == 'fallout':
         return falloutIni
+    elif path.csbody == 'fallout_default':
+        return falloutDefaultIni
+    elif path.csbody == 'falloutprefs':
+        return falloutPrefsIni
     ini = IniFile(path)
     ini_settings = ini.getSettings()
     if len(ini_settings) > 0:
         return ini
-    fose = FOSEIniFile(path)
-    ini_settings = fose.getSettings()
+    nvse = NVSEIniFile(path)
+    ini_settings = nvse.getSettings()
     if len(ini_settings) > 0:
-        return fose
+        return nvse
     return ini
 
-class FOSEIniFile(IniFile):
-    """FOSE Configuration ini file.  Minimal support provided, only can
+class NVSEIniFile(IniFile):
+    """NVSE Configuration ini file.  Minimal support provided, only can
     handle 'set' and 'setGS' statements."""
     reSet     = re.compile(r'\s*set\s+(.+?)\s+to\s+(.*)', re.I)
     reSetGS   = re.compile(r'\s*setGS\s+(.+?)\s+(.*)', re.I)
@@ -9012,7 +9591,7 @@ class FOSEIniFile(IniFile):
 #--------------------------------------------------------------------------------
 class FalloutIni(IniFile):
     """FALLOUT.INI file."""
-    bsaRedirectors = set(('archiveinvalidationinvalidated!.bsa',r'..\fomm\bsaredirection.bsa'))
+    bsaRedirectors = set(('fallout - ai!.bsa',))
 
     def __init__(self):
         """Initialize."""
@@ -9060,7 +9639,7 @@ class FalloutIni(IniFile):
 
     def setBsaRedirection(self,doRedirect=True):
         """Activates or deactivates BSA redirection."""
-        aiBsa = dirs['mods'].join('ArchiveInvalidationInvalidated!.bsa')
+        aiBsa = dirs['mods'].join('Fallout - AI!.bsa')
         aiBsaMTime = time.mktime((2006, 1, 2, 0, 0, 0, 0, 2, 0))
         if aiBsa.exists() and aiBsa.mtime >  aiBsaMTime:
             aiBsa.mtime = aiBsaMTime
@@ -9070,7 +9649,7 @@ class FalloutIni(IniFile):
         archives = [x.strip() for x in sArchives.split(',') if x.strip().lower() not in self.bsaRedirectors]
         #--Add redirector back in?
         if doRedirect:
-            archives.insert(0,'ArchiveInvalidationInvalidated!.bsa')
+            archives.insert(0,'Fallout - AI!.bsa')
         sArchives = ', '.join(archives)
         self.saveSetting('Archive','sArchiveList',sArchives)
 
@@ -9080,6 +9659,13 @@ class FalloutPrefsIni(FalloutIni):
     def __init__(self):
         """Initialize."""
         IniFile.__init__(self,dirs['saveBase'].join('FalloutPrefs.ini'),'General')
+
+#--------------------------------------------------------------------------------
+class FalloutDefaultIni(FalloutIni):
+    """Fallout_default.ini file."""
+    def __init__(self):
+        """Initialize."""
+        IniFile.__init__(self,dirs['app'].join('Fallout_default.ini'),'General')
 
 #------------------------------------------------------------------------------
 class OmodFile:
@@ -9363,7 +9949,7 @@ class Plugins:
         """Write data to Plugins.txt file."""
         self.selected.sort()
         out = self.path.open('w')
-        out.write('# This file is used to tell Fallout3 which data files to load.\n\n')
+        out.write('# This file is used to tell FalloutNV which data files to load.\n\n')
         for modName in self.selected:
             out.write(Encode(modName.s+'\n','mbcs'))
         out.close()
@@ -10259,7 +10845,7 @@ class ResourceReplacer:
         'fonts': ['.fnt', '.tex'],
         'menus': ['.bat', '.html', '.scc', '.txt', '.xml'],
         'meshes': ['.egm', '.egt', '.fim', '.kf', '.kfm', '.nif', '.tri', '.txt'],
-        'fose':['.dll','.dlx','.txt','.mp3'],
+        'nvse':['.dll','.dlx','.txt','.mp3'],
         'shaders': ['.sdp','.fx'],
         'sound': ['.lip', '.mp3', '.wav'],
         'textures': ['.dds', '.ifl', '.psd', '.txt'],
@@ -10397,12 +10983,12 @@ class ResourceReplacer:
         aiModsPath.remove()
         #--Fix the data of a few archive files
         bsaTimes = (
-            ('Fallout - MenuVoices.bsa',1138575220),
-            ('Fallout - Meshes.bsa',1139433736),
-            ('Fallout - Misc.bsa',1138660560),
-            ('Fallout - Sound.bsa',1138162634),
+            ('FalloutNV - Meshes.bsa',1138575220),
+            ('FalloutNV - Misc.bsa',1139433736),
+            ('FalloutNV - Sounds.bsa',1138660560),
             (inisettings['FalloutTexturesBSAName'],1138162634),
-            ('Fallout - Voices.bsa',1138162934),
+            ('FalloutNV - Voices1.bsa',1138162934),
+            ('FalloutNV - Voices2.bsa',1138166742),
             )
         for bsaFile,mtime in bsaTimes:
             bsaPath = dirs['mods'].join(bsaFile)
@@ -10426,7 +11012,7 @@ class INIInfos(FileInfos):
         return dirs['modsBash'].join('INI Data')
 #------------------------------------------------------------------------------
 class ModInfos(FileInfos):
-    """Collection of modinfos. Represents mods in the Fallout 3\Data directory."""
+    """Collection of modinfos. Represents mods in the Fallout New Vegas\Data directory."""
 
     def __init__(self):
         """Initialize."""
@@ -10441,13 +11027,13 @@ class ModInfos(FileInfos):
         self.plugins = Plugins() #--Plugins instance.
         self.ordered = tuple() #--Active mods arranged in load order.
         #--Info lists/sets
-        if dirs['mods'].join('Fallout3.esm').exists():
-            self.masterName = GPath('Fallout3.esm')
+        if dirs['mods'].join('FalloutNV.esm').exists():
+            self.masterName = GPath('FalloutNV.esm')
         #elif dirs['mods'].join('Fallout3.esm').exists():
         #    self.masterName = GPath('Fallout3.esm')
         else:
-            self.masterName = GPath('Fallout3.esm')
-            deprint(_('Missing master file; Neither Fallout3.esm exists in an unghosted state in %s - presuming that Fallout3.esm is the correct masterfile.') % (dirs['mods'].s))
+            self.masterName = GPath('FalloutNV.esm')
+            deprint(_('Missing master file; Neither FalloutNV.esm or Fallout3.esm exists in an unghosted state in %s - presuming that Fallout3.esm is the correct masterfile.') % (dirs['mods'].s))
         self.mtime_mods = {}
         self.mtime_selected = {}
         self.exGroup_mods = {}
@@ -10460,9 +11046,8 @@ class ModInfos(FileInfos):
         self.group_header = {}
         #--Fallout version
         self.version_voSize = {
-            '1.0':int(_("288769595")),
-            '1.1':int(_("288771181")),
-            '1.4':int(_("288771262")),
+            '1.0':int(_("245570393")),
+            '1.4':int(_("245650747")),
             }
         self.size_voVersion = bolt.invertDict(self.version_voSize)
         self.voCurrent = None
@@ -11170,10 +11755,10 @@ class ModInfos(FileInfos):
                         requires[key] = float(value or 0)
         return requires
 
-    #--Fallout3 1.0/1.1/1.4 Swapping -----------------------------------------------
+    #--FalloutNV 1.0/1.4 Swapping -----------------------------------------------
     def getFalloutVersions(self):
         """Returns tuple of Fallout(3|NV) versions."""
-        reFallout = re.compile('^Fallout3(|_1.0|_1.1|_1.4).esm$')
+        reFallout = re.compile('^FalloutNV(|_1.0|_1.1|_1.2|_1.3|_1.4).esm$')
         self.voAvailable.clear()
         for name,info in self.data.iteritems():
             maFallout = reFallout.match(name.s)
@@ -11602,7 +12187,7 @@ class ConfigHelpers:
 
         global boss
         #boss = bapi.BossDb(GPath(dirs['mods'].s).s,bush.game.name)
-        boss = bapi.BossDb(GPath(dirs['app'].s).s,'Fallout 3')
+        boss = bapi.BossDb(GPath(dirs['app'].s).s,'Fallout: New Vegas')
         deprint('Using BOSS API version:', bapi.version)
         bapi.RegisterCallback(bapi.BOSS_API_WARN_LO_MISMATCH,
                               ConfigHelpers.bossLOMismatchCallback)
@@ -11612,8 +12197,8 @@ class ConfigHelpers:
             # BOSS 2.0+ stores the masterlist/userlist in a subdirectory
             #self.bossMasterPath = dirs['boss'].join(bush.game.name,'masterlist.txt')
             #self.bossUserPath = dirs['boss'].join(bush.game.name,'userlist.txt')
-            self.bossMasterPath = dirs['boss'].join('Fallout 3','masterlist.txt')
-            self.bossUserPath = dirs['boss'].join('Fallout 3','userlist.txt')
+            self.bossMasterPath = dirs['boss'].join('Fallout New Vegas','masterlist.txt')
+            self.bossUserPath = dirs['boss'].join('Fallout New Vegas','userlist.txt')
         else:
             self.bossMasterPath = dirs['boss'].join('masterlist.txt')
             self.bossUserPath = dirs['boss'].join('userlist.txt')
@@ -12296,7 +12881,7 @@ class Installer(object):
     docDirs = set(('screenshots',))
     dataDirs = set(('bash patches','distantlod','docs','facegen','fonts',
         'menus','meshes','music','shaders','sound', 'textures', 'trees','video'))
-    dataDirsPlus = dataDirs | docDirs | set(('streamline','_tejon','ini tweaks','scripts','pluggy','ini','fose'))
+    dataDirsPlus = dataDirs | docDirs | set(('streamline','_tejon','ini tweaks','scripts','pluggy','ini','nvse'))
     dataDirsMinus = set(('bash','replacers','--')) #--Will be skipped even if hasExtraData == True.
     reDataFile = re.compile(r'(masterlist.txt|dlclist.txt|\.(esp|esm|bsa|ini))$',re.I)
     reReadMe = re.compile(r'^([^\\]*)(read[ _]?me|lisez[ _]?moi)([^\\]*)\.(txt|rtf|htm|html|doc|odt)$',re.I)
@@ -12387,8 +12972,8 @@ class Installer(object):
                     sDirs[:] = [x for x in sDirs if x.lower() != 'distantlod']
                 if settings['bash.installers.skipScreenshots']:
                     sDirs[:] = [x for x in sDirs if x.lower() != 'screenshots']
-                if not settings['bash.installers.allowFOSEPlugins']:
-                    sDirs[:] = [x for x in sDirs if x.lower() != 'fose']
+                if not settings['bash.installers.allowNVSEPlugins']:
+                    sDirs[:] = [x for x in sDirs if x.lower() != 'nvse']
                 if settings['bash.installers.skipDocs'] and settings['bash.installers.skipImages']:
                     sDirs[:] = [x for x in sDirs if x.lower() != 'docs']
                 if inisettings['KeepLog'] >= 1:
@@ -12568,7 +13153,7 @@ class Installer(object):
             setter(clone,attr,copier(getter(self,attr)))
         return clone
 
-    def refreshDataSizeCrc(self,checkFOSE=False):
+    def refreshDataSizeCrc(self,checkNVSE=False):
         """Updates self.data_sizeCrc and related variables.
         Also, returns dest_src map for install operation."""
         if isinstance(self,InstallerArchive):
@@ -12699,23 +13284,23 @@ class Installer(object):
                 continue
             elif fileStartsWith('--'):
                 continue
-            elif not settings['bash.installers.allowFOSEPlugins'] and fileStartsWith('fose\\'):
+            elif not settings['bash.installers.allowNVSEPlugins'] and fileStartsWith('nvse\\'):
                 continue
             elif fileExt in ['.dll','.dlx']:
-                if not settings['bash.installers.allowFOSEPlugins']: continue
-                if not fileStartsWith('fose\\'):
+                if not settings['bash.installers.allowNVSEPlugins']: continue
+                if not fileStartsWith('nvse\\'):
                     continue
                 if fileLower in badDlls and [archiveRoot,size,crc] in badDlls[fileLower]: continue
-                if not checkFOSE:
+                if not checkNVSE:
                     pass
                 elif fileLower in goodDlls and [archiveRoot,size,crc] in goodDlls[fileLower]: pass
-                elif checkFOSE:
-                    message = _('This installer (%s) has an FOSE plugin DLL.\nThe file is %s\nSuch files can be malicious and hence you should be very sure you know what this file is and that it is legitimate.\nAre you sure you want to install this?') % (archiveRoot, full)
+                elif checkNVSE:
+                    message = _('This installer (%s) has an NVSE plugin DLL.\nThe file is %s\nSuch files can be malicious and hence you should be very sure you know what this file is and that it is legitimate.\nAre you sure you want to install this?') % (archiveRoot, full)
                     if fileLower in goodDlls:
                         message += _(' You have previously chosen to install a dll by this name but with a different size, crc and or source archive name.')
                     elif fileLower in badDlls:
                         message += _(' You have previously chosen to NOT install a dll by this name but with a different size, crc and or source archive name - make extra sure you want to install this one before saying yes.')
-                    if not balt.askYes(installersWindow,message,_('FOSE DLL Warning')):
+                    if not balt.askYes(installersWindow,message,_('NVSE DLL Warning')):
                         badDlls.setdefault(fileLower,[])
                         badDlls[fileLower].append([archiveRoot,size,crc])
                         continue
@@ -12912,7 +13497,7 @@ class Installer(object):
         return (self.status != oldStatus or self.underrides != oldUnderrides)
 
     def install(self,archive,destFiles,data_sizeCrcDate,progress=None):
-        """Install specified files to Fallout 3\Data directory."""
+        """Install specified files to Fallout New Vegas\Data directory."""
         raise AbstractError
 
     def listSource(self,archive):
@@ -13330,7 +13915,7 @@ class InstallerMarker(Installer):
         pass
 
     def install(self,name,destFiles,data_sizeCrcDate,progress=None):
-        """Install specified files to Fallout 3\Data directory."""
+        """Install specified files to Fallout New Vegas\Data directory."""
         pass
 
 #------------------------------------------------------------------------------
@@ -13467,7 +14052,7 @@ class InstallerArchive(Installer):
         #--Done
 
     def install(self,archive,destFiles,data_sizeCrcDate,progress=None):
-        """Install specified files to Fallout 3\Data directory."""
+        """Install specified files to Fallout New Vegas\Data directory."""
         progress = progress or bolt.Progress()
         destDir = dirs['mods']
         destFiles = set(destFiles)
@@ -13648,7 +14233,7 @@ class InstallerProject(Installer):
         self.refreshed = True
 
     def install(self,name,destFiles,data_sizeCrcDate,progress=None):
-        """Install specified files to Fallout 3\Data directory."""
+        """Install specified files to Fallout New Vegas\Data directory."""
         destDir = dirs['mods']
         destFiles = set(destFiles)
         data_sizeCrc = self.data_sizeCrc
@@ -13681,7 +14266,7 @@ class InstallerProject(Installer):
         return count
 
     def syncToData(self,package,projFiles):
-        """Copies specified projFiles from Fallout 3\Data to project directory."""
+        """Copies specified projFiles from Fallout New Vegas\Data to project directory."""
         srcDir = dirs['mods']
         projFiles = set(projFiles)
         srcProj = tuple((x,y) for x,y in self.refreshDataSizeCrc().iteritems() if x in projFiles)
@@ -13900,7 +14485,11 @@ class InstallersData(bolt.TankData, DataDict):
         self.bashDir.makedirs()
         #--Archive invalidation
         if settings.get('bash.bsaRedirection'):
-            falloutIni.setBsaRedirection(True)
+            try:
+                falloutIni.setBsaRedirection(True)
+            except WindowsError:
+                pass
+            falloutDefaultIni.setBsaRedirection(True)
         #--Refresh Data
         changed = False
         if not self.loaded:
@@ -14937,7 +15526,7 @@ class ActorLevels:
                 fid,eid,offset,calcMin,calcMax = fields[:5]
                 source = GPath('Unknown')
                 fidObject = coerce(fid[4:], int, 16)
-                fid = (GPath('Fallout3.esm'), fidObject)
+                fid = (GPath('FalloutNV.esm'), fidObject)
                 eid = coerce(eid, str)
                 offset = coerce(offset, int)
                 calcMin = coerce(calcMin, int)
@@ -14946,7 +15535,7 @@ class ActorLevels:
                 if len(fields) < 7 or fields[3][:2] != '0x': continue
                 source,eid,fidMod,fidObject,offset,calcMin,calcMax = fields[:7]
                 source = coerce(source, str)
-                if source.lower() in ('none', 'fallout3.esm'): continue
+                if source.lower() in ('none', 'falloutnv.esm'): continue
                 source = GPath(source)
                 eid = coerce(eid, str)
                 fidMod = GPath(coerce(fidMod, str))
@@ -14971,9 +15560,9 @@ class ActorLevels:
         out = textPath.open('w')
         out.write(Encode(headFormat % (_('Source Mod'),_('Actor Eid'),_('Actor Mod'),_('Actor Object'),_('Offset'),_('CalcMin'),_('CalcMax'),_('Old IsPCLevelOffset'),_('Old Offset'),_('Old CalcMin'),_('Old CalcMax')),'mbcs'))
         #Sorted based on mod, then editor ID
-        obId_levels = mod_id_levels[GPath('Fallout3.esm')]
+        obId_levels = mod_id_levels[GPath('FalloutNV.esm')]
         for mod in sorted(mod_id_levels):
-            if mod.s.lower() == 'fallout3.esm': continue
+            if mod.s.lower() == 'falloutnv.esm': continue
             id_levels = mod_id_levels[mod]
             for id in sorted(id_levels,key=lambda k: (k[0].s,id_levels[k][0])):
                 eid, isOffset, offset, calcMin, calcMax = id_levels[id]
@@ -15741,7 +16330,8 @@ class FullNames:
     defaultTypes = set((
         'ALCH', 'AMMO', 'APPA', 'ARMO', 'BOOK', 'CLAS', 'CLOT', 'CONT', 'CREA', 'DOOR',
         'EYES', 'FACT', 'FLOR', 'HAIR', 'INGR', 'KEYM', 'LIGH', 'MISC', 'NOTE', 'NPC_',
-        'RACE', 'SPEL', 'TERM', 'WEAP', 'ACTI', 'TACT'))
+        'RACE', 'SPEL', 'TERM', 'WEAP', 'ACTI', 'TACT',
+        'CMNY', 'CCRD', 'IMOD', 'REPU', 'RCPE', 'RCCT', 'CHIP', 'CSNO'))
     hasShortNameTypes = set((
         'AMMO', 'AVIF', ))
 
@@ -16477,9 +17067,9 @@ class ItemStats:
     """Statistics for armor and weapons, with functions for importing/exporting from/to mod/text file."""
     class_attrs = {
         'ALCH':('eid', 'weight', 'value'),
-        'AMMO':('eid', 'speed',  'value', 'clipRounds'),
-        'ARMO':('eid', 'weight', 'value', 'health', 'ar'),
-        'ARMA':('eid', 'weight', 'value', 'health', 'ar'),
+        'AMMO':('eid', 'weight', 'value', 'speed', 'clipRounds','projPerShot'),
+        'ARMO':('eid', 'weight', 'value', 'health', 'ar','dt'),
+        'ARMA':('eid', 'weight', 'value', 'health', 'ar','dt'),
         'BOOK':('eid', 'weight', 'value'),
         'INGR':('eid', 'weight', 'value'),
         'KEYM':('eid', 'weight', 'value'),
@@ -16490,7 +17080,10 @@ class ItemStats:
                 'minRange','maxRange','animationAttackMultiplier','fireRate','overrideActionPoint','rumbleLeftMotorStrength',
                 'rumbleRightMotorStrength','rumbleDuration','overrideDamageToWeaponMult','attackShotsPerSec',
                 'reloadTime','jamTime','aimArc','rambleWavelangth','limbDmgMult','sightUsage',
-                'semiAutomaticFireDelayMin','semiAutomaticFireDelayMax','criticalDamage','criticalMultiplier'),
+                'semiAutomaticFireDelayMin','semiAutomaticFireDelayMax',
+                'strengthReq','regenRate','killImpulse','impulseDist','skillReq',
+                'criticalDamage','criticalMultiplier',
+                'vatsSkill','vatsDamMult','vatsAp'),
         }
 
     @staticmethod
@@ -16657,15 +17250,15 @@ class ItemStats:
             #Ammo
             ('AMMO',
                 ('"' + '","'.join((_('Type'),_('Mod Name'),_('ObjectIndex'),
-                _('Editor Id'),_('Speed'),_('Value'),_('Clip Rounds'))) + '"\n')),
+                _('Editor Id'),_('Weight'),_('Value'),_('Speed'),_('Clip Rounds'),_('Proj/Shot'))) + '"\n')),
             #--Armor
             ('ARMO',
                 ('"' + '","'.join((_('Type'),_('Mod Name'),_('ObjectIndex'),
-                _('Editor Id'),_('Weight'),_('Value'),_('Health'),_('AR'))) + '"\n')),
+                _('Editor Id'),_('Weight'),_('Value'),_('Health'),_('AR'),_('DT'))) + '"\n')),
             #--Armor Addon
             ('ARMA',
                 ('"' + '","'.join((_('Type'),_('Mod Name'),_('ObjectIndex'),
-                _('Editor Id'),_('Weight'),_('Value'),_('Health'),_('AR'))) + '"\n')),
+                _('Editor Id'),_('Weight'),_('Value'),_('Health'),_('AR'),_('DT'))) + '"\n')),
             #Books
             ('BOOK',
                 ('"' + '","'.join((_('Type'),_('Mod Name'),_('ObjectIndex'),
@@ -16695,7 +17288,9 @@ class ItemStats:
                 _('rRmble - Right Motor Strength'), _('Rumble - Duration'), _('Override - Damage To Weapon Mult'), _('Attack Shots/Sec'),
                 _('Reload Time'), _('Jam Time'), _('Aim Arc'), _('Ramble - Wavelangth'), _('Limb Dmg Mult'), _('Sight Usage'),
                 _('Semi-Automatic Fire Delay Min'), _('Semi-Automatic Fire Delay Max'),
-                _('Critical Damage'), _('Crit % Mult'))) + '"\n')),
+                _('Strength Req'), _('Regen Rate'), _('Kill Impulse'), _('Impulse Dist'), _('Skill Req'),
+                _('Critical Damage'), _('Crit % Mult'),
+                _('VATS Skill'), _('VATS Dam. Mult'), _('VATS AP'))) + '"\n')),
             ):
             fid_attr_value = class_fid_attr_value[group]
             if not fid_attr_value: continue
@@ -17089,9 +17684,9 @@ class CompleteItemData:
         self.type_stats = {'ALCH':{},'AMMO':{},'ARMO':{},'ARMA':{},'BOOK':{},'INGR':{},'KEYM':{},'LIGH':{},'MISC':{},'WEAP':{}}
         self.type_attrs = {
             'ALCH':('eid', 'full', 'weight', 'value', 'largeIconPath', 'smallIconPath'),
-            'AMMO':('eid', 'full', 'speed',  'value', 'clipRounds', 'largeIconPath', 'smallIconPath'),
-            'ARMO':('eid', 'full', 'weight', 'value', 'health', 'ar', 'maleLargeIconPath', 'maleSmallIconPath', 'femaleLargeIconPath', 'femaleSmallIconPath'),
-            'ARMA':('eid', 'full', 'weight', 'value', 'health', 'ar', 'maleLargeIconPath', 'maleSmallIconPath', 'femaleLargeIconPath', 'femaleSmallIconPath'),
+            'AMMO':('eid', 'full', 'weight', 'value', 'speed', 'clipRounds', 'projPerShot', 'largeIconPath', 'smallIconPath'),
+            'ARMO':('eid', 'full', 'weight', 'value', 'health', 'ar', 'dt', 'maleLargeIconPath', 'maleSmallIconPath', 'femaleLargeIconPath', 'femaleSmallIconPath'),
+            'ARMA':('eid', 'full', 'weight', 'value', 'health', 'ar', 'dt', 'maleLargeIconPath', 'maleSmallIconPath', 'femaleLargeIconPath', 'femaleSmallIconPath'),
             'BOOK':('eid', 'full', 'weight', 'value', 'largeIconPath', 'smallIconPath'),
             'INGR':('eid', 'full', 'weight', 'value', 'iconPath'),
             'KEYM':('eid', 'full', 'weight', 'value', 'largeIconPath', 'smallIconPath'),
@@ -17102,7 +17697,10 @@ class CompleteItemData:
                     'minRange','maxRange','animationAttackMultiplier','fireRate','overrideActionPoint','rumbleLeftMotorStrength',
                     'rumbleRightMotorStrength','rumbleDuration','overrideDamageToWeaponMult','attackShotsPerSec',
                     'reloadTime','jamTime','aimArc','rambleWavelangth','limbDmgMult','sightUsage',
-                    'semiAutomaticFireDelayMin','semiAutomaticFireDelayMax','criticalDamage','criticalMultiplier',
+                    'semiAutomaticFireDelayMin','semiAutomaticFireDelayMax',
+                    'strengthReq','regenRate','killImpulse','impulseDist','skillReq',
+                    'criticalDamage','criticalMultiplier',
+                    'vatsSkill','vatsDamMult','vatsAp',
                     'largeIconPath', 'smallIconPath'),
             }
         self.aliases = aliases or {} #--For aliasing mod fulls
@@ -17229,16 +17827,16 @@ class CompleteItemData:
                     zip((str,sfloat,int,str,str),fields[4:9]))
             elif type == 'AMMO':
                 ammo[longid] = (eid,) + tuple(func(field) for func,field in
-                    #--(speed, value, clipRounds)
-                    zip((str,sfloat,int,int,str,str),fields[4:10]))
+                    #--(weight, value, speed, clipRounds, projPerShot)
+                    zip((str,sfloat,int,sfloat,int,int,str,str),fields[4:12]))
             elif type == 'ARMO':
                 armor[longid] = (eid,) + tuple(func(field) for func,field in
-                    #--(weight, value, health, ar)
-                    zip((str,sfloat,int,int,int,str,str,str,str),fields[4:13]))
+                    #--(weight, value, health, ar, dt)
+                    zip((str,sfloat,int,int,int,int,str,str,str,str),fields[4:14]))
             elif type == 'ARMA':
                 armoraddon[longid] = (eid,) + tuple(func(field) for func,field in
-                    #--(weight, value, health, ar)
-                    zip((str,sfloat,int,int,int,str,str,str,str),fields[4:13]))
+                    #--(weight, value, health, ar, dt)
+                    zip((str,sfloat,int,int,int,int,str,str,str,str),fields[4:14]))
             elif type == 'BOOK':
                 books[longid] = (eid,) + tuple(func(field) for func,field in
                     #--(weight, value)
@@ -17266,13 +17864,20 @@ class CompleteItemData:
                     #-- minRange, maxRange, animationAttackMultiplier, fireRate, overrideActionPoint, rumbleLeftMotorStrength,
                     #-- rumbleRightMotorStrength, rumbleDuration, overrideDamageToWeaponMult, attackShotsPerSec,
                     #-- reloadTime, jamTime, aimArc, rambleWavelangth, limbDmgMult, sightUsage,
-                    #-- semiAutomaticFireDelayMin, semiAutomaticFireDelayMax, criticalDamage, criticalMultiplier)
+                    #-- semiAutomaticFireDelayMin, semiAutomaticFireDelayMax,
+                    #-- strengthReq, regenRate, killImpulse, impulseDist, skillReq,
+                    #-- criticalDamage, criticalMultiplier,
+                    #-- vatsSkill, vatsDamMult, vatsAp)
                     zip((str,sfloat,int,int,int,int,
                          sfloat,sfloat,int,sfloat,sfloat,sfloat,int,int,
                          sfloat,sfloat,sfloat,sfloat,sfloat,sfloat,
                          sfloat,sfloat,sfloat,sfloat,
                          sfloat,sfloat,sfloat,sfloat,sfloat,sfloat,
-                         sfloat,sfloat,int,sfloat,str,str),fields[4:40]))
+                         sfloat,sfloat,
+                         int,sfloat,sfloat,sfloat,int,
+                         int,sfloat,
+                         sfloat,sfloat,sfloat,
+                         str,str),fields[4:48]))
         ins.close()
 
     def writeToText(self,textPath):
@@ -17290,19 +17895,19 @@ class CompleteItemData:
                     ('"' + '","'.join((_('Type'),_('Mod Name'),_('ObjectIndex'),
                     _('Editor Id'),_('Name'),_('Weight'),_('Value'),_('Large Icon Path'),_('Small Icon Path'),_('Model'))) + '"\n')),
                 #Ammo
-                ('AMMO', bolt.csvFormat('ssfiisss')+'\n',
+                ('AMMO', bolt.csvFormat('ssfifiisss')+'\n',
                     ('"' + '","'.join((_('Type'),_('Mod Name'),_('ObjectIndex'),
-                    _('Editor Id'),_('Name'),_('Speed'),_('Value'),_('Clip Rounds'),_('Large Icon Path'),_('Small Icon Path'),_('Model'))) + '"\n')),
+                    _('Editor Id'),_('Name'),_('Weight'),_('Value'),_('Speed'),_('Clip Rounds'),_('Proj/Shot'),_('Large Icon Path'),_('Small Icon Path'),_('Model'))) + '"\n')),
                 #--Armor
-                ('ARMO', bolt.csvFormat('ssfiiissssssss')+'\n',
+                ('ARMO', bolt.csvFormat('ssfiiiissssssss')+'\n',
                     ('"' + '","'.join((_('Type'),_('Mod Name'),_('ObjectIndex'),
-                    _('Editor Id'),_('Name'),_('Weight'),_('Value'),_('Health'),_('AR'),
+                    _('Editor Id'),_('Name'),_('Weight'),_('Value'),_('Health'),_('AR'),_('DT'),
                     _('Male Large Icon Path'),_('Male Small Icon Path'),_('Female Large Icon Path'),_('Female Small Icon Path'),
                     _('Male Model Path'),_('Female Model Path'),_('Male World Model Path'),_('Female World Model Path'))) + '"\n')),
                 #--Armor Addon
-                ('ARMA', bolt.csvFormat('ssfiiissssssss')+'\n',
+                ('ARMA', bolt.csvFormat('ssfiiiissssssss')+'\n',
                     ('"' + '","'.join((_('Type'),_('Mod Name'),_('ObjectIndex'),
-                    _('Editor Id'),_('Name'),_('Weight'),_('Value'),_('Health'),_('AR'),
+                    _('Editor Id'),_('Name'),_('Weight'),_('Value'),_('Health'),_('AR'),_('DT'),
                     _('Male Large Icon Path'),_('Male Small Icon Path'),_('Female Large Icon Path'),_('Female Small Icon Path'),
                     _('Male Model Path'),_('Female Model Path'),_('Male World Model Path'),_('Female World Model Path'))) + '"\n')),
                 #Books
@@ -17326,7 +17931,7 @@ class CompleteItemData:
                     ('"' + '","'.join((_('Type'),_('Mod Name'),_('ObjectIndex'),
                     _('Editor Id'),_('Name'),_('Weight'),_('Value'),_('Large Icon Path'),_('Small Icon Path'),_('Model'))) + '"\n')),
                 #--Weapons
-                ('WEAP', bolt.csvFormat('ssfiiiiffifffiiffffffffffffffffffifssssss')+'\n',
+                ('WEAP', bolt.csvFormat('ssfiiiiffifffiiffffffffffffffffffifffiiffffssssss')+'\n',
                     ('"' + '","'.join((_('Type'),_('Mod Name'),_('ObjectIndex'),
                     _('Editor Id'),_('Name'),_('Weight'),_('Value'),_('Health'),_('Damage'),_('Clip Size'),
                     _('Animation Multiplier'), _('Reach'), _('Ammo Use'), _('Min Spread'), _('Spread'), _('Sight Fov'), _('Base VATS To-Hit Chance'), _('Projectile Count'),
@@ -17334,7 +17939,9 @@ class CompleteItemData:
                     _('rRmble - Right Motor Strength'), _('Rumble - Duration'), _('Override - Damage To Weapon Mult'), _('Attack Shots/Sec'),
                     _('Reload Time'), _('Jam Time'), _('Aim Arc'), _('Ramble - Wavelangth'), _('Limb Dmg Mult'), _('Sight Usage'),
                     _('Semi-Automatic Fire Delay Min'), _('Semi-Automatic Fire Delay Max'),
+                    _('Strength Req'), _('Regen Rate'), _('Kill Impulse'), _('Impulse Dist'), _('Skill Req'),
                     _('Critical Damage'), _('Crit % Mult'),
+                    _('VATS Skill'), _('VATS Dam. Mult'), _('VATS AP'),
                     _('Large Icon Path'),_('Small Icon Path'),_('Model'),_('Shell Casing Model'),_('Scope Model'),_('World Model'))) + '"\n')),
                 ):
                 stats = self.type_stats[type]
@@ -19799,7 +20406,10 @@ class PatchFile(ModFile):
         MreClmt, MreCsty, MreIdle, MreLtex, MreRegn, MreSbsp, MreSkil,
         MreTxst, MreMicn, MreFlst, MreLvln, MrePerk, MreExpl, MreIpct, MreIpds, MreProj,
         MreDebr, MreImad, MreMstt, MreNote, MreTerm, MreAvif, MreEczn, MreBptd, MreVtyp,
-        MreMusc, MrePwat, MreAspc, MreHdpt, MreDobj, MreIdlm, MreArma, MreTact)
+        MreMusc, MrePwat, MreAspc, MreHdpt, MreDobj, MreIdlm, MreArma, MreTact,
+        MreImod, MreRepu, MreRcpe, MreRcct, MreChip, MreCsno, MreLsct, MreMset, MreAloc, MreChal,
+        MreAmef, MreCcrd, MreCmny, MreCdck, MreDehy, MreHung, MreSlpd,
+        )
 
     @staticmethod
     def modIsMergeable(modInfo,progress=None,verbose=True):
@@ -19951,7 +20561,7 @@ class PatchFile(ModFile):
                 #--Error checks
                 if 'WRLD' in modFile.tops and modFile.WRLD.orphansSkipped:
                     self.worldOrphanMods.append(modName)
-                if 'SCPT' in modFile.tops and modName != 'Fallout3.esm':
+                if 'SCPT' in modFile.tops and modName != 'FalloutNV.esm':
                     gls = modFile.SCPT.getRecord(0x00025811)
                     if gls and gls.compiledSize == 4 and gls.lastIndex == 0:
                         self.compiledAllMods.append(modName)
@@ -19984,7 +20594,7 @@ class PatchFile(ModFile):
         mergeIds = self.mergeIds
         loadSet = self.loadSet
         modFile.convertToLongFids()
-        badForm = (GPath("Fallout3.esm"),0xA31D) #--DarkPCB record
+        badForm = (GPath("FalloutNV.esm"),0xA31D) #--DarkPCB record
         for blockType,block in modFile.tops.iteritems():
             iiSkipMerge = iiMode and blockType not in ('LVLC','LVLI','LVSP','LVLN')
             #--Make sure block type is also in read and write factories
@@ -20055,7 +20665,7 @@ class PatchFile(ModFile):
             for mod in self.worldOrphanMods: log ('* '+mod.s)
         if self.compiledAllMods:
             log.setHeader(_("=== Compiled All"))
-            log(_("The following mods have an empty compiled version of genericLoreScript. This is usually a sign that the mod author did a __compile all__ while editing scripts. This may interfere with the behavior of other mods that intentionally modify scripts from Fallout3.esm. (E.g. Cobl and Unofficial Fallout 3 Patch.) You can use Bash's [[http://wrye.ufrealms.net/Wrye%20Bash.html#DecompileAll|Decompile All]] command to repair the mods."))
+            log(_("The following mods have an empty compiled version of genericLoreScript. This is usually a sign that the mod author did a __compile all__ while editing scripts. This may interfere with the behavior of other mods that intentionally modify scripts from FalloutNV.esm. (E.g. Cobl and Unofficial Fallout New Vegas Patch.) You can use Bash's [[http://wrye.ufrealms.net/Wrye%20Bash.html#DecompileAll|Decompile All]] command to repair the mods."))
             for mod in self.compiledAllMods: log ('* '+mod.s)
         log.setHeader(_("=== Active Mods"),True)
         for name in self.allMods:
@@ -20254,7 +20864,7 @@ class CBash_PatchFile(ObModFile):
         loadSet = self.loadSet
         parentsToLoad = set()
         recordsToLoad = set()
-        badForm = (GPath("Fallout3.esm"),0xA31D) #--DarkPCB record
+        badForm = (GPath("FalloutNV.esm"),0xA31D) #--DarkPCB record
         for blockType, block in modFile.aggregates.iteritems():
             iiSkipMerge = iiMode and blockType not in ('LVLC','LVLI','LVSP','LVLN')
             if iiSkipMerge: continue
@@ -20438,7 +21048,7 @@ class CBash_PatchFile(ObModFile):
             modGName = modFile.GName
             #--Error checks
             gls = modFile.LookupRecord(0x00025811)
-            if gls and gls.compiledSize == 4 and gls.lastIndex == 0 and modName != GPath('Fallout3.esm'):
+            if gls and gls.compiledSize == 4 and gls.lastIndex == 0 and modName != GPath('FalloutNV.esm'):
                 self.compiledAllMods.append(modName)
             pstate = 0
             subProgress = SubProgress(progress,index)
@@ -20558,7 +21168,7 @@ class CBash_PatchFile(ObModFile):
             for mod in self.worldOrphanMods: log ('* '+mod.s)
         if self.compiledAllMods:
             log.setHeader(_("=== Compiled All"))
-            log(_("The following mods have an empty compiled version of genericLoreScript. This is usually a sign that the mod author did a __compile all__ while editing scripts. This may interfere with the behavior of other mods that intentionally modify scripts from Fallout3.esm. (E.g. Unofficial Patch.) You can use Bash's [[http://wrye.ufrealms.net/Wrye%20Bash.html#DecompileAll|Decompile All]] command to repair the mods."))
+            log(_("The following mods have an empty compiled version of genericLoreScript. This is usually a sign that the mod author did a __compile all__ while editing scripts. This may interfere with the behavior of other mods that intentionally modify scripts from FalloutNV.esm. (E.g. Unofficial Patch.) You can use Bash's [[http://wrye.ufrealms.net/Wrye%20Bash.html#DecompileAll|Decompile All]] command to repair the mods."))
             for mod in self.compiledAllMods: log ('* '+mod.s)
         log.setHeader(_("=== Active Mods"),True)
         for name in self.allMods:
@@ -22053,18 +22663,24 @@ class GraphicsPatcher(ImportPatcher):
         recFidAttrs_class = self.recFidAttrs_class = {}
         for recClass in (MreBsgn,MreLscr, MreClas, MreLtex, MreRegn):
             recAttrs_class[recClass] = ('iconPath',)
-        for recClass in (MreActi, MreDoor, MreFlor, MreFurn, MreGras, MreStat, MreMstt, MreBptd, MreTerm, MrePwat, MreHdpt, MreTact):
+        for recClass in (MreActi, MreDoor, MreFlor, MreFurn, MreGras, MreStat, MreMstt, MrePwat, MreHdpt, MreTact, MreDobj):
             recAttrs_class[recClass] = ('model',)
         for recClass in (MreLigh,):
             recAttrs_class[recClass] = ('iconPath','model')
         for recClass in (MreMicn,):
             recAttrs_class[recClass] = ('largeIconPath','smallIconPath')
-        for recClass in (MreAlch, MreAmmo, MreAppa, MreBook, MreIngr, MreKeym, MreMisc, MreSgst, MreSlgm, MreTree):
+        for recClass in (MreRepu,):
+            recAttrs_class[recClass] = ('largeIconPath','smallIconPath')
+        for recClass in (MreCsno,):
+            recAttrs_class[recClass] = ('chipModels','slotMachineModel','blackjackTableModel','rouletteTableModel','slotReelTextures','blackjackDecks')
+        for recClass in (MreAlch, MreAmmo, MreAppa, MreBook, MreIngr, MreKeym, MreMisc, MreSgst, MreSlgm, MreTree, MreCmny, MreImod, MreChip):
             recAttrs_class[recClass] = ('largeIconPath','smallIconPath','model')
         for recClass in (MreNote,):
             recAttrs_class[recClass] = ('largeIconPath','smallIconPath','model','texture')
+        for recClass in (MreCcrd,):
+            recAttrs_class[recClass] = ('largeIconPath','smallIconPath','model','textureFace','textureBack')
         for recClass in (MreWeap,):
-            recAttrs_class[recClass] = ('largeIconPath','smallIconPath','model','shellCasingModel','scopeModel','worldModel','firstPersonModel','animationType','gripAnimation','reloadAnimation')
+            recAttrs_class[recClass] = ('largeIconPath','smallIconPath','model','shellCasingModel','scopeModel','worldModel','firstPersonModel','animationType','gripAnimation','reloadAnimation','modelWithMods','firstPersonModelWithMods')
         for recClass in (MreArmo, MreArma, MreClot):
             recAttrs_class[recClass] = ('maleBody','maleWorld','maleLargeIconPath','maleSmallIconPath','femaleBody','femaleWorld','femaleLargeIconPath','femaleSmallIconPath','flags')
         for recClass in (MreCrea,):
@@ -22096,7 +22712,7 @@ class GraphicsPatcher(ImportPatcher):
         for recClass in (MreProj,):
             recAttrs_class[recClass] = ('model','light','muzzleFlash','explosion','muzzleFlashDuration','fadeDuration','muzzleFlashPath')
         #--Needs Longs
-        self.longTypes = set(('BSGN','LSCR','CLAS','LTEX','REGN','ACTI','DOOR','FLOR','FURN','GRAS','STAT','ALCH','AMMO','BOOK','INGR','KEYM','LIGH','MISC','SGST','SLGM','WEAP','TREE','ARMO','ARMA','CLOT','CREA','MGEF','EFSH','TXST','EXPL','IPCT','IPDS','PROJ','NOTE','TACT','HDPT'))
+        self.longTypes = set(('BSGN','LSCR','CLAS','LTEX','REGN','ACTI','DOOR','FLOR','FURN','GRAS','STAT','ALCH','AMMO','BOOK','INGR','KEYM','LIGH','MISC','SGST','SLGM','WEAP','TREE','ARMO','ARMA','CLOT','CREA','MGEF','EFSH','TXST','EXPL','IPCT','IPDS','PROJ','NOTE','TACT','CMNY','CCRD','IMOD','REPU','HDPT','MSTT','CHIP','CSNO','PWAT','DOBJ'))
 
     def initData(self,progress):
         """Get graphics from source files."""
@@ -23784,9 +24400,9 @@ class ImportScripts(ImportPatcher):
         self.isActive = len(self.sourceMods) != 0
         #--Type Fields
         recAttrs_class = self.recAttrs_class = {}
-        for recClass in (MreWeap,MreActi,MreAlch,MreArmo,MreBook,MreCont,MreCrea,MreDoor,MreFlor,MreFurn,MreIngr,MreKeym,MreLigh,MreMisc,MreNpc,MreQust,MreTerm,MreTact):
+        for recClass in (MreWeap,MreActi,MreAlch,MreArmo,MreBook,MreCont,MreCrea,MreDoor,MreFlor,MreFurn,MreIngr,MreKeym,MreLigh,MreMisc,MreNpc,MreQust,MreTerm,MreTact,MreCcrd):
             recAttrs_class[recClass] = ('script',)
-        self.longTypes = set(('WEAP','ACTI','ALCH','ARMO','BOOK','CONT','CREA','DOOR','FLOR','FURN','INGR','KEYM','LIGH','MISC','NPC_','QUST','TERM','TACT'))
+        self.longTypes = set(('WEAP','ACTI','ALCH','ARMO','BOOK','CONT','CREA','DOOR','FLOR','FURN','INGR','KEYM','LIGH','MISC','NPC_','QUST','TERM','TACT','CCRD'))
 
     def initData(self,progress):
         """Get script links from source files."""
@@ -24625,7 +25241,7 @@ class NamesPatcher(ImportPatcher):
     name = _('Import Names')
     text = _("Import names from source mods/files.")
     defaultItemCheck = inisettings['AutoItemCheck'] #--GUI: Whether new items are checked by default or not.
-    autoRe = re.compile(r"^Fallout3.esm$",re.I)
+    autoRe = re.compile(r"^FalloutNV.esm$",re.I)
     autoKey = 'Names'
 
     #--Patch Phase ------------------------------------------------------------
@@ -25256,8 +25872,10 @@ class SoundPatcher(ImportPatcher):
         for recClass in (MreMgef,):
             recAttrs_class[recClass] = ('castingSound','boltSound','hitSound','areaSound')
         for recClass in (MreActi,):
-            recAttrs_class[recClass] = ('soundLooping','soundActivation')
-        for recClass in (MreLigh,MreTact):
+            recAttrs_class[recClass] = ('soundLooping','soundActivation','radioTemplate')
+        for recClass in (MreTact,):
+            recAttrs_class[recClass] = ('sound','radioTemplate')
+        for recClass in (MreLigh,):
             recAttrs_class[recClass] = ('sound',)
         for recClass in (MreWthr,):
             recAttrs_class[recClass] = ('sounds',)
@@ -25272,7 +25890,8 @@ class SoundPatcher(ImportPatcher):
         for recClass in (MreAspc,):
             recAttrs_class[recClass] = ('soundLooping','useSoundFromRegion','environmentType')
         for recClass in (MreWeap,):
-            recAttrs_class[recClass] = ('soundGunShot3D','soundGunShot2D','soundGunShot3DLooping','soundLevel')
+            recAttrs_class[recClass] = ('soundGunShot3D','soundGunShot2D','soundGunShot3DLooping','soundMeleeSwingGunNoAmmo',
+                                        'soundBlock','soundMod1Shoot3Ds','soundMod1Shoot2D','soundLevel')
         #--Needs Longs
         self.longTypes = set(('MGEF','ACTI','TACT','LIGH','WTHR','CONT','DOOR','EXPL','IPCT','PROJ','ASPC','WEAP','REGN'))
 
@@ -25883,9 +26502,10 @@ class DestructiblePatcher(ImportPatcher):
         #--Type Fields
         recAttrs_class = self.recAttrs_class = {}
         recFidAttrs_class = self.recFidAttrs_class = {}
-        for recClass in (MreActi,MreAlch,MreAmmo,MreBook,MreCont,MreCrea,MreDoor,MreFurn,MreKeym,MreMisc,MreNpc,MreWeap,MreProj,MreMstt,MreTerm,MreTact):
+        for recClass in (MreActi,MreAlch,MreAmmo,MreBook,MreCont,MreCrea,MreDoor,MreFurn,MreKeym,MreMisc,MreNpc,MreWeap,MreProj,MreMstt,MreTerm,MreTact,MreImod):
             recAttrs_class[recClass] = ('destructible',)
-        self.longTypes = set(('ACTI','ALCH','AMMO','BOOK','CONT','CREA','DOOR','FURN','KEYM','MISC','NPC','WEAP','PROJ','MSTT','TERM','TACT'))
+        self.longTypes = set(('ACTI','ALCH','AMMO','BOOK','CONT','CREA','DOOR','FURN','KEYM','MISC','NPC','WEAP','PROJ','MSTT','TERM','TACT','IMOD'))
+        #self.longTypes = set(('ACTI','ALCH','AMMO','ARMO','BOOK','CONT','CREA','DEBR','DIAL','DOOR','ENCH','EXPL','FACT','FLOR','FLST','FURN','INFO','INGR','IPDS','KEYM','LIGH','MGEF','MISC','MSTT','NOTE','NPC_','PROJ','QUST','REFR','SCPT','SOUN','SPEL','STAT','TERM','TXST','WATR','WEAP','TACT','IMOD','CHIP'))
 
     def initData(self,progress):
         """Get graphics from source files."""
@@ -26020,6 +26640,183 @@ class DestructiblePatcher(ImportPatcher):
             if count: log("* %s: %d" % (type,count))
 
 ##class CBash_DestructiblePatcher(CBash_ImportPatcher):
+##    raise NotImplementedError
+#------------------------------------------------------------------------------
+class WeaponModsPatcher(ImportPatcher):
+    """Merge changes to weapon modifications."""
+    scanOrder = 27
+    editOrder = 27
+    name = _("Import Weapon Modifications")
+    text = _("Merges changes to weapon modifications.")
+    tip = text
+    autoRe = re.compile(r"^UNDEFINED$",re.I)
+    autoKey = 'WeaponMods'
+
+    #--Patch Phase ------------------------------------------------------------
+    def initPatchFile(self,patchFile,loadMods):
+        """Prepare to handle specified patch mod. All functions are called after this."""
+        Patcher.initPatchFile(self,patchFile,loadMods)
+        self.id_data = {} #--Names keyed by long fid.
+        self.srcClasses = set() #--Record classes actually provided by src mods/files.
+        self.sourceMods = self.getConfigChecked()
+        self.isActive = len(self.sourceMods) != 0
+        self.classestemp = set()
+        #--Type Fields
+        recAttrs_class = self.recAttrs_class = {}
+        recFidAttrs_class = self.recFidAttrs_class = {}
+        for recClass in (MreWeap,):
+            recAttrs_class[recClass] = ('modelWithMods','firstPersonModelWithMods','weaponMods','soundMod1Shoot3Ds','soundMod1Shoot2D',
+                                        'effectMod1','effectMod2','effectMod3','valueAMod1','valueAMod2','valueAMod3',
+                                        'valueBMod1','valueBMod2','valueBMod3','reloadAnimationMod','vatsModReqiured','scopeModel',
+                                        'dnamFlags1.hasScope','dnamFlags2.scopeFromMod')
+        self.longTypes = set(('WEAP',))
+        #self.longTypes = set(('WEAP','STAT','IMOD','SOUN'))
+
+    def initData(self,progress):
+        """Get graphics from source files."""
+        if not self.isActive: return
+        id_data = self.id_data
+        recAttrs_class = self.recAttrs_class
+        loadFactory = LoadFactory(False,*recAttrs_class.keys())
+        longTypes = self.longTypes & set(x.classType for x in recAttrs_class)
+        progress.setFull(len(self.sourceMods))
+        cachedMasters = {}
+        for index,srcMod in enumerate(self.sourceMods):
+            temp_id_data = {}
+            if srcMod not in modInfos: continue
+            srcInfo = modInfos[srcMod]
+            srcFile = ModFile(srcInfo,loadFactory)
+            masters = srcInfo.header.masters
+            srcFile.load(True)
+            srcFile.convertToLongFids(longTypes)
+            mapper = srcFile.getLongMapper()
+            for recClass,recAttrs in recAttrs_class.iteritems():
+                if recClass.classType not in srcFile.tops: continue
+                self.srcClasses.add(recClass)
+                self.classestemp.add(recClass)
+                recFidAttrs = self.recFidAttrs_class.get(recClass, None)
+                for record in srcFile.tops[recClass.classType].getActiveRecords():
+                    fid = mapper(record.fid)
+                    if recFidAttrs:
+                        #attr_fidvalue = dict((attr,record.__getattribute__(attr)) for attr in recFidAttrs)
+                        attr_fidvalue = dict((attr,reduce(getattr, attr.split('.'), record)) for attr in recFidAttrs)
+                        for fidvalue in attr_fidvalue.values():
+                            if fidvalue and (fidvalue[0] is None or fidvalue[0] not in self.patchFile.loadSet):
+                                #Ignore the record. Another option would be to just ignore the attr_fidvalue result
+                                mod_skipcount = self.patchFile.patcher_mod_skipcount.setdefault(self.name,{})
+                                mod_skipcount[srcMod] = mod_skipcount.setdefault(srcMod, 0) + 1
+                                break
+                        else:
+                            #temp_id_data[fid] = dict((attr,record.__getattribute__(attr)) for attr in recAttrs)
+                            temp_id_data[fid] = dict((attr,reduce(getattr, attr.split('.'), record)) for attr in recAttrs)
+                            temp_id_data[fid].update(attr_fidvalue)
+                    else:
+                        #temp_id_data[fid] = dict((attr,record.__getattribute__(attr)) for attr in recAttrs)
+                        temp_id_data[fid] = dict((attr,reduce(getattr, attr.split('.'), record)) for attr in recAttrs)
+            for master in masters:
+                if not master in modInfos: continue # or break filter mods
+                if master in cachedMasters:
+                    masterFile = cachedMasters[master]
+                else:
+                    masterInfo = modInfos[master]
+                    masterFile = ModFile(masterInfo,loadFactory)
+                    masterFile.load(True)
+                    masterFile.convertToLongFids(longTypes)
+                    cachedMasters[master] = masterFile
+                mapper = masterFile.getLongMapper()
+                for recClass,recAttrs in recAttrs_class.iteritems():
+                    if recClass.classType not in masterFile.tops: continue
+                    if recClass not in self.classestemp: continue
+                    for record in masterFile.tops[recClass.classType].getActiveRecords():
+                        fid = mapper(record.fid)
+                        if fid not in temp_id_data: continue
+                        for attr, value in temp_id_data[fid].iteritems():
+                            #if value == record.__getattribute__(attr): continue
+                            if value == reduce(getattr, attr.split('.'), record): continue
+                            else:
+                                if fid not in id_data: id_data[fid] = dict()
+                                try:
+                                    id_data[fid][attr] = temp_id_data[fid][attr]
+                                except KeyError:
+                                    id_data[fid].setdefault(attr,value)
+            progress.plus()
+        temp_id_data = None
+        self.longTypes = self.longTypes & set(x.classType for x in self.srcClasses)
+        self.isActive = bool(self.srcClasses)
+
+    def scanModFile(self, modFile, progress):
+        """Scan mod file against source data."""
+        if not self.isActive: return
+        id_data = self.id_data
+        modName = modFile.fileInfo.name
+        mapper = modFile.getLongMapper()
+        if self.longTypes:
+            modFile.convertToLongFids(self.longTypes)
+        for recClass in self.srcClasses:
+            type = recClass.classType
+            if type not in modFile.tops: continue
+            patchBlock = getattr(self.patchFile,type)
+            for record in modFile.tops[type].getActiveRecords():
+                fid = record.fid
+                if not record.longFids: fid = mapper(fid)
+                if fid not in id_data: continue
+                for attr,value in id_data[fid].iteritems():
+                    #if record.__getattribute__(attr) != value:
+                    if reduce(getattr, attr.split('.'), record) != value:
+                        patchBlock.setRecord(record.getTypeCopy(mapper))
+                        break
+
+    def buildPatch(self,log,progress):
+        """Merge last version of record with patched destructible data as needed."""
+        if not self.isActive: return
+        modFile = self.patchFile
+        keep = self.patchFile.getKeeper()
+        id_data = self.id_data
+        type_count = {}
+        for recClass in self.srcClasses:
+            type = recClass.classType
+            if type not in modFile.tops: continue
+            type_count[type] = 0
+            for record in modFile.tops[type].records:
+                fid = record.fid
+                if fid not in id_data: continue
+                for attr,value in id_data[fid].iteritems():
+                    #if isinstance(record.__getattribute__(attr),str) and isinstance(value, str):
+                    if isinstance(reduce(getattr, attr.split('.'), record),str) and isinstance(value, str):
+                        #if record.__getattribute__(attr).lower() != value.lower():
+                        if reduce(getattr, attr.split('.'), record).lower() != value.lower():
+                            break
+                        continue
+                    elif attr == 'model':
+                        try:
+                            #if record.__getattribute__(attr).modPath.lower() != value.modPath.lower():
+                            if reduce(getattr, attr.split('.'), record).modPath.lower() != value.modPath.lower():
+                                break
+                            continue
+                        except:
+                            break #assume they are not equal (ie they aren't __both__ NONE)
+                    #if record.__getattribute__(attr) != value:
+                    if reduce(getattr, attr.split('.'), record) != value:
+                        break
+                else:
+                    continue
+                for attr,value in id_data[fid].iteritems():
+                    #record.__setattr__(attr,value)
+                    sattr = attr.split('.')
+                    lastattr = sattr.pop()
+                    reduce(getattr, sattr, record).__setattr__(lastattr, value)
+                keep(fid)
+                type_count[type] += 1
+        id_data = None
+        log.setHeader('= '+self.__class__.name)
+        log(_("=== Source Mods"))
+        for mod in self.sourceMods:
+            log("* " +mod.s)
+        log(_("\n=== Modified Records"))
+        for type,count in sorted(type_count.iteritems()):
+            if count: log("* %s: %d" % (type,count))
+
+##class CBash_WeaponModsPatcher(CBash_ImportPatcher):
 ##    raise NotImplementedError
 # Patchers: 30 ----------------------------------------------------------------
 #------------------------------------------------------------------------------
@@ -31005,26 +31802,27 @@ class NamesTweak_SortInventory(MultiTweakItem):
         MultiTweakItem.__init__(self,_("Sort Inventory"),
             _('Sort item by category in barter and container screens.'),
             'sortInventory',
-            # weapon,armor,stimpak,chem,food/drink,ammo
-            (_('Chem>Ammo>Weapon>Armor>Food>Misc'),3,2,6,5,1,4),
-            (_('Ammo>Chem>Weapon>Armor>Food>Misc'),3,2,5,4,1,6),
+            # weapon,armor,stimpak,chem,food/drink,mag,book,misc,card,ammo
+            (_('Chem>Ammo>Weapon>Armor>Food>Mag>Book>Misc>Card'),6,5,9,8,4,3,2,1,0,7),
+            (_('Ammo>Chem>Weapon>Armor>Food>Mag>Book>Misc>Card'),6,5,8,7,4,3,2,1,0,9),
+            (_('Weapon>Armor>Chem>Food>Mag>Book>Misc>Card>Ammo'),9,8,7,6,5,4,3,2,1,0),
             )
 
     #--Config Phase -----------------------------------------------------------
     #--Patch Phase ------------------------------------------------------------
     def getReadClasses(self):
         """Returns load factory classes needed for reading."""
-        return (MreAmmo,MreWeap,MreArmo,MreAlch)
+        return (MreAmmo,MreWeap,MreArmo,MreAlch,MreBook,MreMisc,MreCcrd)
 
     def getWriteClasses(self):
         """Returns load factory classes needed for writing."""
-        return (MreAmmo,MreWeap,MreArmo,MreAlch)
+        return (MreAmmo,MreWeap,MreArmo,MreAlch,MreBook,MreMisc,MreCcrd)
 
     def scanModFile(self,modFile,progress,patchFile):
         """Scans specified mod file to extract info. May add record to patch mod,
         but won't alter it."""
         mapper = modFile.getLongMapper()
-        for blockType in ('AMMO','WEAP','ARMO','ALCH'):
+        for blockType in ('AMMO','WEAP','ARMO','ALCH','BOOK','MISC','CCRD'):
             modBlock = getattr(modFile,blockType)
             patchBlock = getattr(patchFile,blockType)
             id_records = patchBlock.id_records
@@ -31036,10 +31834,11 @@ class NamesTweak_SortInventory(MultiTweakItem):
     def buildPatch(self,log,progress,patchFile):
         """Edits patch file as desired. Will write to log."""
         count = {}
-        cntWeap,cntArmo,cntStim,cntChem,cntFood,cntAmmo = self.choiceValues[self.chosen]
+        cntWeap,cntArmo,cntStim,cntChem,cntFood,cntMag,cntBook,cntMisc,cntCard,cntAmmo = self.choiceValues[self.chosen]
         keep = patchFile.getKeeper()
         reHead = re.compile(r"^\x07*")
-        for cnt,type in ((cntWeap,'WEAP'),(cntArmo,'ARMO'),(cntAmmo,'AMMO')):
+        for cnt,type in ((cntWeap,'WEAP'),(cntArmo,'ARMO'),(cntBook,'BOOK'),(cntMisc,'MISC'),(cntCard,'CCRD'),(cntAmmo,'AMMO')):
+            if cnt == 0: continue
             for record in getattr(patchFile,type).records:
                 if not record.full: continue
                 if record.full[0] in '+-=[]<>': continue
@@ -31055,75 +31854,16 @@ class NamesTweak_SortInventory(MultiTweakItem):
                 record.full = reHead.sub('\x07' * cntChem, record.full)
             elif record.etype == 11: # stimpak
                 record.full = reHead.sub('\x07' * cntStim, record.full)
-            else:                    # food/alcohol
+            elif record.etype == 13: # alcohol
                 record.full = reHead.sub('\x07' * cntFood, record.full)
+            else:
+                if record.soundConsume == (GPath('FalloutNV.esm'),0x07b73b): # magazine
+                    record.full = reHead.sub('\x07' * cntMag, record.full)
+                else: # food
+                    record.full = reHead.sub('\x07' * cntFood, record.full)
             keep(record.fid)
             srcMod = record.fid[0]
             count[srcMod] = count.get(srcMod,0) + 1
-        #--Log
-        log(_('* %s: %d') % (self.label,sum(count.values())))
-        for srcMod in modInfos.getOrdered(count.keys()):
-            log('  * %s: %d' % (srcMod.s,count[srcMod]))
-
-class NamesTweak_AmmoWeight(MultiTweakItem):
-    #--Config Phase -----------------------------------------------------------
-    def __init__(self):
-        MultiTweakItem.__init__(self,_("Append Ammo Weight"),
-            _("Append ammo weight of FWE to tail of the ammo name."),
-            'AmmoWeight',
-            (_('BB (WG 0.01)'), ' (WG %s.%s)'),
-            (_('BB (0.01)'), ' (%s.%s)'),
-            )
-
-    #--Config Phase -----------------------------------------------------------
-    #--Patch Phase ------------------------------------------------------------
-    def getReadClasses(self):
-        """Returns load factory classes needed for reading."""
-        return (MreAmmo,MreFlst)
-
-    def getWriteClasses(self):
-        """Returns load factory classes needed for writing."""
-        return (MreAmmo,MreFlst)
-
-    def scanModFile(self,modFile,progress,patchFile):
-        """Scans specified mod file to extract info. May add record to patch mod,
-        but won't alter it."""
-        mapper = modFile.getLongMapper()
-        for blockType in ('AMMO','FLST'):
-            modBlock = getattr(modFile,blockType)
-            patchBlock = getattr(patchFile,blockType)
-            id_records = patchBlock.id_records
-            for record in modBlock.getActiveRecords():
-                if mapper(record.fid) not in id_records:
-                    record = record.getTypeCopy(mapper)
-                    patchBlock.setRecord(record)
-
-    def buildPatch(self,log,progress,patchFile):
-        """Edits patch file as desired. Will write to log."""
-        count = {}
-        format = self.choiceValues[self.chosen][0]
-        keep = patchFile.getKeeper()
-        weights = {}
-        weightRe = re.compile(r"^(.*)( \(WG \d+\.\d+\))$")
-        listEidRe = re.compile(r"^AmmoWeight(\d)(\d{2})List$")
-        for record in patchFile.FLST.records:
-            m = listEidRe.match(record.eid)
-            if m:
-                weight = format % (m.group(1), m.group(2))
-                for fid in record.fids:
-                    weights[fid] = weight
-        for record in patchFile.AMMO.records:
-            if not record.full: continue
-            weight = weights.get(record.fid)
-            if weight:
-                m = weightRe.match(record.full)
-                if m:
-                    record.full = m.group(1) + weight
-                else:
-                    record.full = record.full + weight
-                keep(record.fid)
-                srcMod = record.fid[0]
-                count[srcMod] = count.get(srcMod,0) + 1
         #--Log
         log(_('* %s: %d') % (self.label,sum(count.values())))
         for srcMod in modInfos.getOrdered(count.keys()):
@@ -31150,7 +31890,6 @@ class NamesTweaker(MultiTweaker):
             ),
         NamesTweak_Potions(),
         NamesTweak_Weapons(),
-        NamesTweak_AmmoWeight(),
         ],key=lambda a: a.label.lower())
     tweaks.insert(0,NamesTweak_BodyTags())
     tweaks.append(NamesTweak_SortInventory())
@@ -34324,14 +35063,14 @@ class RacePatcher(SpecialPatcher,ListPatcher):
                 keep(race.fid)
         #--Eye Mesh filtering
         # eye_mesh = self.eye_mesh
-        # ghoulEyeMesh = eye_mesh[(GPath('Fallout3.esm'),0x35e4f)]
-        # hazelEyeMesh = eye_mesh[(GPath('Fallout3.esm'),0x4255)]
+        # ghoulEyeMesh = eye_mesh[(GPath('FalloutNV.esm'),0x35e4f)]
+        # hazelEyeMesh = eye_mesh[(GPath('FalloutNV.esm'),0x4255)]
         # if debug:
         #     print '== Eye Mesh Filtering'
         #     print 'hazelEyeMesh',hazelEyeMesh
         #     print 'ghoulEyeMesh',ghoulEyeMesh
         # for eye in (
-        #     (GPath('Fallout3.esm'),0x1a), #--Reanimate
+        #     (GPath('FalloutNV.esm'),0x1a), #--Reanimate
         #     #(GPath('Oblivion.esm'),0x54bb9), #--Dark Seducer
         #     #(GPath('Oblivion.esm'),0x54bba), #--Golden Saint
         #     #(GPath('Oblivion.esm'),0x5fa43), #--Ordered
@@ -35213,7 +35952,7 @@ class ContentsChecker(SpecialPatcher,Patcher):
             'LVLC':'LVLC,CREA,'.split(','),
             'LVLN':'LVLN,NPC_,'.split(','),
             #--LVLI will also be applied for containers.
-            'LVLI':'LVLI,ALCH,AMMO,APPA,ARMO,BOOK,CLOT,INGR,KEYM,LIGH,MISC,SGST,SLGM,WEAP,NOTE,MSTT,STAT'.split(','),
+            'LVLI':'LVLI,ALCH,AMMO,APPA,ARMO,BOOK,CLOT,INGR,KEYM,LIGH,MISC,SGST,SLGM,WEAP,NOTE,MSTT,STAT,CMNY,CCRD,IMOD,CHIP'.split(','),
             }
         self.contType_entryTypes['CONT'] = self.contType_entryTypes['LVLI']
         self.contType_entryTypes['CREA'] = self.contType_entryTypes['LVLI']
@@ -35505,8 +36244,8 @@ def testPermissions(path,permissions='rwcd'):
 
 def getFalloutPath(bashIni, path):
     if path: path = GPath(path)
-    elif bashIni and bashIni.has_option('General', 'sFallout3Path') and not bashIni.get('General', 'sFallout3Path') == '.':
-        path = GPath(bashIni.get('General', 'sFallout3Path').strip())
+    elif bashIni and bashIni.has_option('General', 'sFalloutNVPath') and not bashIni.get('General', 'sFalloutNVPath') == '.':
+        path = GPath(bashIni.get('General', 'sFalloutNVPath').strip())
     else:
         path = bolt.Path.getcwd().head #Assume bash is in right place (\Fallout (New Vegas|3)\Mopy\)
         #but for bashmon have to do a checky.
@@ -35515,8 +36254,8 @@ def getFalloutPath(bashIni, path):
     #--If path is relative, make absolute
     if not path.isabs(): path = dirs['mopy'].join(path)
     #--Error check
-    if not path.join('Fallout3.exe').exists():
-        raise BoltError(_("Install Error\nFailed to find Fallout3.exe in %s.\nNote that the Mopy folder should be in the same folder as Fallout3.exe.") % path)
+    if not path.join('FalloutNV.exe').exists():
+        raise BoltError(_("Install Error\nFailed to find FalloutNV.exe in %s.\nNote that the Mopy folder should be in the same folder as FalloutNV.exe.") % path)
     return path
 
 def getPersonalPath(bashIni, path):
@@ -35568,10 +36307,10 @@ def getLocalAppDataPath(bashIni, path):
     return path
 
 def getFalloutModsPath(bashIni):
-    if bashIni and bashIni.has_option('General','sFallout3Mods'):
-        path = GPath(bashIni.get('General','sFallout3Mods').strip())
+    if bashIni and bashIni.has_option('General','sFalloutNVMods'):
+        path = GPath(bashIni.get('General','sFalloutNVMods').strip())
     else:
-        path = GPath(r'..\Fallout 3 Mods')
+        path = GPath(r'..\Fallout New Vegas Mods')
     if not path.isabs(): path = dirs['app'].join(path)
     return path
 
@@ -35612,11 +36351,11 @@ def initDirs(bashIni, personal, localAppData, falloutPath):
 
     #  Personal
     personal = getPersonalPath(bashIni,personal)
-    dirs['saveBase'] = personal.join(r'My Games','Fallout3')
+    dirs['saveBase'] = personal.join(r'My Games','FalloutNV')
 
     #  Local Application Data
     localAppData = getLocalAppDataPath(bashIni,localAppData)
-    dirs['userApp'] = localAppData.join('Fallout3')
+    dirs['userApp'] = localAppData.join('FalloutNV')
 
     # Use local paths if bUseMyGamesDirectory=0 in Fallout.ini
     falloutIni = FalloutIni()
@@ -35693,7 +36432,7 @@ def initDefaultTools():
 
     tooldirs['FOMMPath'] = pathlist('GeMM','fomm.exe')
     #tooldirs['Tes4FilesPath'] = dirs['app'].join('TES4Files.exe')
-    tooldirs['FO3EditPath'] = dirs['app'].join('FO3Edit.exe')
+    tooldirs['FNVEditPath'] = dirs['app'].join('FNVEdit.exe')
     #tooldirs['Tes4LodGenPath'] = dirs['app'].join('TES4LodGen.exe')
     #tooldirs['Tes4GeckoPath'] = dirs['app'].join('Tes4Gecko.jar')
     #tooldirs['OblivionBookCreatorPath'] = dirs['mods'].join('OblivionBookCreator.jar')
@@ -35844,8 +36583,8 @@ def initOptions(bashIni):
                 elif compValue != compDefaultValue:
                     usedSettings[usedKey] = value
 
-    tooldirs['FO3MasterUpdatePath'] = tooldirs['FO3EditPath'].head.join('FO3MasterUpdate.exe')
-    tooldirs['FO3MasterRestorePath'] = tooldirs['FO3EditPath'].head.join('FO3MasterRestore.exe')
+    tooldirs['FNVMasterUpdatePath'] = tooldirs['FNVEditPath'].head.join('FNVMasterUpdate.exe')
+    tooldirs['FNVMasterRestorePath'] = tooldirs['FNVEditPath'].head.join('FNVMasterRestore.exe')
 
 def initLogFile():
     if inisettings['KeepLog'] == 0:

@@ -528,10 +528,10 @@ class PageFinish(PageInstaller):
 # PageVersions ---------------------------------------
 #  Page for displaying what versions an installer
 #  requires/recommends and what you have installed
-#  for Fallout, FOSE, and OBGE, and Wrye Flash
+#  for FalloutNV, NVSE, and OBGE, and Wrye Flash
 #-----------------------------------------------------
 class PageVersions(PageInstaller):
-    def __init__(self, parent, bFoOk, foHave, foNeed, bFOSEOk, foseHave, foseNeed, bOBGEOk, obgeHave, obgeNeed, bWBOk, wbHave, wbNeed):
+    def __init__(self, parent, bFoOk, foHave, foNeed, bNVSEOk, nvseHave, nvseNeed, bOBGEOk, obgeHave, obgeNeed, bWBOk, wbHave, wbNeed):
         PageInstaller.__init__(self, parent)
 
         bmp = [wx.Bitmap(bosh.dirs['images'].join('x.png').s),
@@ -561,13 +561,13 @@ class PageVersions(PageInstaller):
         sizerVersions.Add(wx.StaticText(self, -1, foHave))
         sizerVersions.Add(wx.StaticBitmap(self, -1, bmp[bFoOk]))
 
-        linkFOSE = wx.HyperlinkCtrl(self, -1, 'Fallout 3 Script Extender', 'http://fose.silverlock.org/')
-        linkFOSE.SetVisitedColour(linkFOSE.GetNormalColour())
-        linkFOSE.SetToolTip(wx.ToolTip('http://fose.silverlock.org/'))
-        sizerVersions.Add(linkFOSE)
-        sizerVersions.Add(wx.StaticText(self, -1, foseNeed))
-        sizerVersions.Add(wx.StaticText(self, -1, foseHave))
-        sizerVersions.Add(wx.StaticBitmap(self, -1, bmp[bFOSEOk]))
+        linkNVSE = wx.HyperlinkCtrl(self, -1, 'Fallout Script Extender', 'http://nvse.silverlock.org/')
+        linkNVSE.SetVisitedColour(linkNVSE.GetNormalColour())
+        linkNVSE.SetToolTip(wx.ToolTip('http://nvse.silverlock.org/'))
+        sizerVersions.Add(linkNVSE)
+        sizerVersions.Add(wx.StaticText(self, -1, nvseNeed))
+        sizerVersions.Add(wx.StaticText(self, -1, nvseHave))
+        sizerVersions.Add(wx.StaticBitmap(self, -1, bmp[bNVSEOk]))
 
         # linkOBGE = wx.HyperlinkCtrl(self, -1, 'Fallout Graphics Extender', 'http://timeslip.chorrol.com/obge.html')
         # linkOBGE.SetVisitedColour(linkOBGE.GetNormalColour())
@@ -577,9 +577,9 @@ class PageVersions(PageInstaller):
         # sizerVersions.Add(wx.StaticText(self, -1, obgeHave))
         # sizerVersions.Add(wx.StaticBitmap(self, -1, bmp[bOBGEOk]))
 
-        linkWB = wx.HyperlinkCtrl(self, -1, 'Wrye Flash', 'http://www.fallout3nexus.com/downloads/file.php?id=11336')
+        linkWB = wx.HyperlinkCtrl(self, -1, 'Wrye Flash NV', 'http://www.newvegasnexus.com/downloads/file.php?id=35003')
         linkWB.SetVisitedColour(linkWB.GetNormalColour())
-        linkWB.SetToolTip(wx.ToolTip('http://www.fallout3nexus.com/'))
+        linkWB.SetToolTip(wx.ToolTip('http://www.newvegasnexus.com/'))
         sizerVersions.Add(linkWB)
         sizerVersions.Add(wx.StaticText(self, -1, wbNeed))
         sizerVersions.Add(wx.StaticText(self, -1, wbHave))
@@ -840,7 +840,7 @@ class WryeParser(ScriptParser.Parser):
 
         #--Functions
         self.SetFunction('CompareFalloutVersion', self.fnCompareFalloutVersion, 1)
-        self.SetFunction('CompareFOSEVersion', self.fnCompareFOSEVersion, 1)
+        self.SetFunction('CompareNVSEVersion', self.fnCompareNVSEVersion, 1)
         #self.SetFunction('CompareOBGEVersion', self.fnCompareOBGEVersion, 1)
         self.SetFunction('CompareWBVersion', self.fnCompareWBVersion, 1)
         self.SetFunction('DataFileExists', self.fnDataFileExists, 1, ScriptParser.KEY.NO_MAX)
@@ -1081,11 +1081,11 @@ class WryeParser(ScriptParser.Parser):
 
     # Functions...
     def fnCompareFalloutVersion(self, foWant):
-        ret = self._TestVersion(self._TestVersion_Want(foWant), bosh.dirs['app'].join('fallout3.exe'))
+        ret = self._TestVersion(self._TestVersion_Want(foWant), bosh.dirs['app'].join('FalloutNV.exe'))
         return ret[0]
-    def fnCompareFOSEVersion(self, foseWant):
-        fose = 'fose_loader.exe'
-        ret = self._TestVersion(self._TestVersion_Want(foseWant), bosh.dirs['app'].join(fose))
+    def fnCompareNVSEVersion(self, nvseWant):
+        nvse = 'nvse_loader.exe'
+        ret = self._TestVersion(self._TestVersion_Want(nvseWant), bosh.dirs['app'].join(nvse))
         return ret[0]
     def fnCompareOBGEVersion(self, obgeWant):
         ret = self._TestVersion_OBGE(self._TestVersion_Want(obgeWant))
@@ -1539,34 +1539,34 @@ class WryeParser(ScriptParser.Parser):
     def kwdNote(self, note):
         self.notes.append('- %s\n' % note)
 
-    def kwdRequireVersions(self, fo, fose='None', obge='None', wbWant='0'):
+    def kwdRequireVersions(self, fo, nvse='None', obge='None', wbWant='0'):
         if self.bAuto: return
 
         foWant = self._TestVersion_Want(fo)
         if foWant == 'None': fo = 'None'
-        foseWant = self._TestVersion_Want(fose)
-        if foseWant == 'None': fose = 'None'
+        nvseWant = self._TestVersion_Want(nvse)
+        if nvseWant == 'None': nvse = 'None'
         obgeWant = self._TestVersion_Want(obge)
         if obgeWant == 'None': obge = 'None'
         wbHave = bosh.settings['bash.readme'][1]
 
-        ret = self._TestVersion(foWant, bosh.dirs['app'].join('fallout3.exe'))
+        ret = self._TestVersion(foWant, bosh.dirs['app'].join('FalloutNV.exe'))
         bFoOk = ret[0] >= 0
         foHave = ret[1]
-        foseName = 'fose_loader.dll'
-        ret = self._TestVersion(foseWant, bosh.dirs['app'].join(foseName))
-        bFOSEOk = ret[0] >= 0
-        foseHave = ret[1]
+        nvseName = 'nvse_loader.dll'
+        ret = self._TestVersion(nvseWant, bosh.dirs['app'].join(nvseName))
+        bNVSEOk = ret[0] >= 0
+        nvseHave = ret[1]
         ret = self._TestVersion_OBGE(obgeWant)
         bOBGEOk = ret[0] >= 0
         obgeHave = ret[1]
         bWBOk = float(wbHave) >= float(wbWant)
 
-        if not bFoOk or not bFOSEOk or not bOBGEOk or not bWBOk:
-            self.page = PageVersions(self.parent, bFoOk, foHave, ob, bFOSEOk, foseHave, fose, bOBGEOk, obgeHave, obge, bWBOk, wbHave, wbWant)
+        if not bFoOk or not bNVSEOk or not bOBGEOk or not bWBOk:
+            self.page = PageVersions(self.parent, bFoOk, foHave, ob, bNVSEOk, nvseHave, nvse, bOBGEOk, obgeHave, obge, bWBOk, wbHave, wbWant)
     def _TestVersion_OBGE(self, want):
-        retOBGEOld = self._TestVersion(want, bosh.dirs['mods'].join('fose', 'plugins', 'obge.dll'))
-        retOBGENew = self._TestVersion(want, bosh.dirs['mods'].join('fose', 'plugins', 'obgev2.dll'))
+        retOBGEOld = self._TestVersion(want, bosh.dirs['mods'].join('nvse', 'plugins', 'obge.dll'))
+        retOBGENew = self._TestVersion(want, bosh.dirs['mods'].join('nvse', 'plugins', 'obgev2.dll'))
         haveNew = retOBGENew[1]
         haveOld = retOBGEOld[1]
         if haveNew != 'None':
