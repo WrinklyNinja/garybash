@@ -38,6 +38,9 @@ Additionally, Wrye Bash comes packaged with the following programs:
 {{CONTENTS=0}}
 **All versions by Wrye team and or Valda unless otherwise noted.**
 
+=== 15.6 [12/05/2012]
+* Fixed some attributes that cause errors in routines when building Bash patch.  i.e. MreRegn
+
 === 15.5 [12/05/2012]
 * Fixed a parse error when reading the EVE FNV.esp.
 
